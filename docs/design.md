@@ -276,13 +276,13 @@ Next steps:
 
 ---
 
-### `dnaspec init-manifest`
+### `dnaspec manifest init`
 
 **Purpose**: Initialize DNA repository manifest
 
 **Usage**:
 ```bash
-dnaspec init-manifest
+dnaspec manifest init
 ```
 
 **Behavior**:
@@ -295,18 +295,18 @@ dnaspec init-manifest
 ✓ Created dnaspec-manifest.yaml
 
 Edit the manifest to define your DNA guidelines and prompts.
-Run 'dnaspec validate-manifest' to validate your changes.
+Run 'dnaspec manifest validate' to validate your changes.
 ```
 
 ---
 
-### `dnaspec validate-manifest`
+### `dnaspec manifest validate`
 
 **Purpose**: Validate manifest structure and references
 
 **Usage**:
 ```bash
-dnaspec validate-manifest
+dnaspec manifest validate
 ```
 
 **Behavior**:
@@ -1004,7 +1004,7 @@ git commit -m "Update DNA guidelines to latest"
 
 ```bash
 # In DNA repository root
-dnaspec init-manifest
+dnaspec manifest init
 
 # Edit dnaspec-manifest.yaml
 # - Add guidelines with files, descriptions, scenarios
@@ -1013,7 +1013,7 @@ dnaspec init-manifest
 # - IMPORTANT: Ensure applicable_scenarios are comprehensive (used for AGENTS.md)
 
 # Validate manifest
-dnaspec validate-manifest
+dnaspec manifest validate
 
 # Commit
 git add dnaspec-manifest.yaml guidelines/ prompts/
@@ -1027,9 +1027,9 @@ git push --tags
 ```bash
 # Developer is creating new guidelines locally
 cd ~/my-dna
-dnaspec init-manifest
+dnaspec manifest init
 # ... create guidelines and prompts ...
-dnaspec validate-manifest
+dnaspec manifest validate
 
 # Test in project with symlink (development mode)
 cd ~/my-project
@@ -1266,60 +1266,37 @@ graph TB
     P4 --> A2
 ```
 
-### Component Architecture
+### Architecture Boundaries
 
-```
-dnaspec/
-├── cli/                         # Command-line interface layer
-│   ├── commands/
-│   │   ├── init.{lang}          # init command
-│   │   ├── add.{lang}           # add command (with --symlink, --dry-run)
-│   │   ├── update.{lang}        # update command (with --all, --dry-run)
-│   │   ├── remove.{lang}        # remove command (NEW)
-│   │   ├── validate.{lang}      # validate command (NEW - validate project config)
-│   │   ├── sync.{lang}          # sync command (NEW - update all + regenerate)
-│   │   ├── update_agents.{lang} # update-agents command
-│   │   ├── init_manifest.{lang} # init-manifest command
-│   │   ├── validate_manifest.{lang} # validate-manifest command
-│   │   └── list.{lang}          # list command
-│   └── main.{lang}              # CLI entry point
-├── core/                        # Core business logic
-│   ├── config/                  # Configuration management
-│   │   ├── schema.{lang}        # Data structures
-│   │   ├── reader.{lang}        # Read YAML configs
-│   │   ├── writer.{lang}        # Write YAML configs
-│   │   ├── templates.{lang}     # Config templates
-│   │   └── naming.{lang}        # Source name derivation
-│   ├── repo/                    # DNA repository management
-│   │   ├── clone.{lang}         # Git cloning with validation
-│   │   ├── local.{lang}         # Local filesystem support
-│   │   ├── manifest.{lang}      # Manifest parsing
-│   │   ├── update.{lang}        # Update from source
-│   │   ├── temp.{lang}          # Temp directory management (PID + random)
-│   │   └── validator.{lang}     # Security: path & URL validation
-│   ├── copy/                    # File operations
-│   │   ├── copy.{lang}          # Copy guidelines/prompts
-│   │   └── symlink.{lang}       # Symlink support for local sources
-│   ├── inject/                  # Managed block injection
-│   │   ├── parser.{lang}        # Parse existing files
-│   │   ├── generator.{lang}     # Generate block content
-│   │   └── writer.{lang}        # Write managed blocks
-│   ├── validate/                # Validation engine
-│   │   ├── manifest.{lang}      # Manifest validation
-│   │   └── reporter.{lang}      # Error reporting
-│   └── agent/                   # Agent-specific integrations
-│       ├── generator.{lang}     # Prompt file generation
-│       ├── claude.{lang}        # Claude Code integration
-│       └── copilot.{lang}       # GitHub Copilot integration
-└── ui/                          # User interface components
-    ├── tui/                     # Terminal UI components
-    │   ├── checklist.{lang}     # Guideline selection
-    │   ├── agent_select.{lang}  # Agent selection
-    │   ├── progress.{lang}      # Progress indicators
-    │   └── styles.{lang}        # Shared styles
-    └── format/                  # Output formatting
-        └── styles.{lang}        # Color schemes, icons
-```
+Internally, the implementation should separate these conceptual layers:
+
+**Core Domain:**
+- Configuration management (dnaspec.yaml, dnaspec-manifest.yaml)
+- Domain entities (sources, guidelines, prompts, manifests)
+- Schema definitions and templates
+- Validation logic (manifest validation, path security, naming conventions)
+- Source name derivation and normalization
+
+**CLI / UI Layer:**
+- Command parsing and flag handling
+- User interaction (prompts, confirmations)
+- Terminal output formatting (colors, icons, progress indicators)
+- Help text and usage examples
+- Exit code management
+
+**Agent Adapters:**
+- Mapping core data into agent-specific file formats
+- Claude Code integration (CLAUDE.md, .claude/commands/)
+- GitHub Copilot integration (.github/prompts/)
+- Future agent integrations (Windsurf, Cursor, etc.)
+- Managing agent-specific file locations and formats
+
+**Repository Access Layer:**
+- Git repository cloning and checkout
+- Local directory access
+- Temporary directory management (creation, cleanup)
+- Security validation (URL validation, path traversal prevention)
+- File operations (copy, symlink, atomic writes)
 
 ### File Operations Best Practices
 
@@ -1882,7 +1859,7 @@ cd company-dna
 git init
 
 # Initialize manifest
-dnaspec init-manifest
+dnaspec manifest init
 
 # Edit dnaspec-manifest.yaml
 cat > dnaspec-manifest.yaml << 'EOF'
@@ -1969,7 +1946,7 @@ Provide specific recommendations.
 EOF
 
 # Validate
-dnaspec validate-manifest
+dnaspec manifest validate
 
 # Commit and tag
 git add .
@@ -2242,7 +2219,7 @@ prompts:
 
 **Solution**:
 - Ensure `applicable_scenarios` is not empty in manifest
-- Run `dnaspec validate-manifest` to check
+- Run `dnaspec manifest validate` to check
 - The scenarios are critical for AI agents to know when to consult guidelines
 
 **Problem**: Symlinked source doesn't work on another machine
@@ -2266,4 +2243,4 @@ prompts:
 - Manifest paths must be relative and within guidelines/ or prompts/
 - Remove ".." from paths
 - Use `guidelines/foo.md` not `../foo.md` or `/absolute/path`
-- Run `dnaspec validate-manifest` to check
+- Run `dnaspec manifest validate` to check
