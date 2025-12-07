@@ -12,7 +12,7 @@
 - [x] 2.1 Implement manifest schema types (Manifest, ManifestGuideline, ManifestPrompt) in internal/core/config/manifest.go
 - [x] 2.2 Implement YAML marshaling/unmarshaling with yaml.v3 tags
 - [x] 2.3 Add manifest template generation function in internal/core/config/templates.go
-- [ ] 2.4 Write unit tests for schema types
+- [x] 2.4 Write unit tests for schema types
 
 ## 3. Validation Engine
 
@@ -24,7 +24,7 @@
 - [x] 3.6 Implement file existence validation with filepath checking
 - [x] 3.7 Implement path security validation (relative paths, no traversal, directory prefix)
 - [x] 3.8 Implement naming convention validation (spinal-case)
-- [ ] 3.9 Write comprehensive unit tests for all validation rules
+- [x] 3.9 Write comprehensive unit tests for all validation rules
 
 ## 4. CLI Commands
 
@@ -41,18 +41,18 @@
 ## 5. Testing
 
 - [x] 5.1 Create test fixtures (valid and invalid manifest examples)
-- [ ] 5.2 Write integration tests for manifest init command
-- [ ] 5.3 Write integration tests for manifest validate with various error cases
+- [x] 5.2 Write integration tests for manifest init command
+- [x] 5.3 Write integration tests for manifest validate with various error cases
 - [x] 5.4 Test path traversal security scenarios
 - [x] 5.5 Test naming convention validation
 - [x] 5.6 Test all error messages for clarity and accuracy
 
 ## 6. Documentation
 
-- [ ] 6.1 Add command documentation to README.md
-- [ ] 6.2 Create example manifest files in examples/ directory
-- [ ] 6.3 Document validation rules and common errors
-- [ ] 6.4 Add troubleshooting section for manifest validation errors
+- [x] 6.1 Add command documentation to README.md
+- [x] 6.2 Create example manifest files in examples/ directory
+- [x] 6.3 Document validation rules and common errors
+- [x] 6.4 Add troubleshooting section for manifest validation errors
 
 ## Notes
 
