@@ -66,6 +66,7 @@ Reusable instructions for AI agents to perform specific tasks (e.g., code review
 - Generic templates stored in DNA repository
 - Transformed into agent-specific formats (Claude commands, Copilot prompts)
 - Associated with one or more guidelines
+- **Identity**: A prompt's identity is the pair `(source.name, prompt.name)`. Two prompts with the same name in different sources are independent and produce different generated files.
 
 Example: `dna-review` prompt - "Review code against DNA guidelines"
 
@@ -102,7 +103,13 @@ Specially marked sections in files that DNASpec controls and updates automatical
 <!-- DNASPEC:END -->
 ```
 
-Users should not edit content inside these markers.
+**Customization Rules**:
+- Content inside `<!-- DNASPEC:START/END -->` markers is **fully owned by DNASpec** and will be overwritten on every `update-agents` run
+- Files under `dnaspec/` directory should be treated as **read-only** in the project (they are managed copies from DNA sources)
+- Content **outside** the managed block markers in `AGENTS.md` and `CLAUDE.md` is preserved and can contain project-specific instructions
+- For project-specific guideline variants:
+  - Add separate local guideline files outside `dnaspec/` directory, OR
+  - Maintain your own DNA repository and reference it as a source in `dnaspec.yaml`
 
 ---
 
@@ -135,6 +142,8 @@ make install
 
 Located in project root. Defines which DNA sources and guidelines are active.
 
+**Project Root Discovery**: All project-level commands look for `dnaspec.yaml` in the current directory. If not found, they search parent directories until the filesystem root (similar to git). This allows running DNASpec commands from subdirectories within a project, and improves UX in monorepos.
+
 ```yaml
 version: 1
 
@@ -150,6 +159,7 @@ sources:
     url: "https://github.com/company/dna"
     ref: "v1.2.0"                   # Git tag or branch
     commit: "abc123def456789..."    # Resolved commit hash
+    subdir: "eng/dna"               # Optional: subdirectory path (for monorepos)
 
     # Selected guidelines from this source
     guidelines:
@@ -159,7 +169,7 @@ sources:
         applicable_scenarios:       # Used for generating AGENTS.md
           - "writing new Go code"
           - "refactoring existing Go code"
-        prompts:
+        prompts:                    # List of prompt names (not paths)
           - "go-style-code-review"
 
     # Prompts associated with selected guidelines
@@ -172,20 +182,23 @@ sources:
     type: "local-dir"
     path: "/Users/me/dna/api"
     symlinked: false              # true if added with --symlink
+    subdir: "patterns"            # Optional: subdirectory within path
     guidelines: [...]
     prompts: [...]
 ```
 
+**Monorepo Support**: The optional `subdir` field allows DNA repositories to be stored in subdirectories of larger monorepos. When `subdir` is set, DNASpec expects `dnaspec-manifest.yaml` to be located under that subdirectory within the repository or local path.
+
 **Key Properties:**
 
-- `version`: Format version (currently 1)
+- `version`: Configuration format version (currently 1). Breaking changes to the configuration schema will bump this number. Future versions may provide `dnaspec upgrade` to migrate configs automatically.
 - `agents`: Array of enabled agent identifiers
 - `sources`: Array of DNA sources with metadata
 - Each source contains selected `guidelines` and `prompts`
 
 **Naming Convention:**
 - Source names: lowercase, alphanumeric + hyphens
-- Guideline/prompt names: **spinal-case** (e.g., `go-style`, `rest-api`, `database-migrations`)
+- Guideline/prompt names: **spinal-case** (lowercase letters separated by hyphens, e.g., `go-style`, `rest-api`, `database-migrations`)
 
 ### Manifest Configuration: `dnaspec-manifest.yaml`
 
@@ -202,7 +215,7 @@ guidelines:
     applicable_scenarios:          # IMPORTANT: Used for generating AGENTS.md
       - "writing new Go code"
       - "refactoring existing Go code"
-    prompts:                       # References to prompts
+    prompts:                       # List of prompt names (not paths) defined in the manifest's prompts section
       - "go-style-code-review"
 
   - name: "go-service"
@@ -352,6 +365,8 @@ dnaspec add <local-path> [--name <custom-name>] --symlink [--dry-run]
 - `<local-path>`: Local directory path
 - `--symlink`: Create symlink instead of copying files (local sources only, for development)
 - `--dry-run`: Preview changes without writing files
+- `--all`: Add all guidelines from the source (non-interactive)
+- `--guideline <name>`: Add specific guideline by name (repeatable, non-interactive)
 
 **Behavior**:
 
@@ -394,10 +409,15 @@ flowchart TD
    - Error if source name already exists
    - Suggest using `--name` flag
 
-5. **Interactive Selection**:
-   - Display checklist of ALL available guidelines
-   - Show: name, description, applicable_scenarios
-   - User selects which to add
+5. **Guideline Selection**:
+   - **Interactive mode** (default when no flags provided):
+     - Display checklist of ALL available guidelines
+     - Show: name, description, applicable_scenarios
+     - User selects which to add
+   - **Non-interactive mode** (when `--all` or `--guideline` flags provided):
+     - `--all`: Automatically add all guidelines from the source
+     - `--guideline <name>`: Add only specified guidelines (can be repeated)
+     - Error if specified guideline name doesn't exist in manifest
 
 6. **Copy or Symlink Files**:
    - **Copy mode** (default for production):
@@ -442,6 +462,12 @@ dnaspec add /Users/me/my-dna --name experimental --symlink
 
 # Preview what would be added
 dnaspec add --git-repo https://github.com/company/dna --dry-run
+
+# Non-interactive: Add all guidelines
+dnaspec add --git-repo https://github.com/company/dna --git-ref v1.2.0 --all
+
+# Non-interactive: Add specific guidelines
+dnaspec add --git-repo https://github.com/company/dna --guideline go-style --guideline rest-api
 ```
 
 **Output**:
@@ -483,6 +509,10 @@ dnaspec update --all [--dry-run]
 - `<source-name>`: Name of source to update (required unless --all)
 - `--all`: Update all sources
 - `--dry-run`: Preview changes without writing files
+- `--add-new=<policy>`: Control automatic addition of new guidelines
+  - `all`: Automatically add all newly discovered guidelines (non-interactive)
+  - `none`: Never add new guidelines, only update existing (non-interactive)
+  - Omit this flag for interactive prompt (default behavior)
 
 **Behavior**:
 
@@ -516,7 +546,12 @@ flowchart TD
 4. **Compare**: Detect updated, new, and removed guidelines
 5. **Update Selected Guidelines**: Copy latest files, overwrite existing (no drift detection)
 6. **Report Changes**: Display what changed
-7. **Optional Add New**: Prompt user to add newly available guidelines
+7. **Handle New Guidelines**:
+   - **Interactive mode** (default when `--add-new` not specified):
+     - Prompt user to add newly available guidelines
+   - **Non-interactive mode** (`--add-new` flag provided):
+     - `--add-new=all`: Automatically add all new guidelines
+     - `--add-new=none`: Skip new guidelines, only update existing
 8. **Update Metadata**: Update commit hash (git) in `dnaspec.yaml`
 9. **Suggest Next Steps**: "Run 'dnaspec update-agents' to regenerate agent files"
 
@@ -530,6 +565,12 @@ dnaspec update --all
 
 # Preview updates without applying
 dnaspec update my-company-dna --dry-run
+
+# Non-interactive: Auto-add all new guidelines
+dnaspec update my-company-dna --add-new=all
+
+# Non-interactive: Only update existing, don't add new
+dnaspec update my-company-dna --add-new=none
 ```
 
 **Output**:
@@ -694,19 +735,25 @@ flowchart TD
    - Use format: `@/dnaspec/<source-name>/<file>` for guidelines
    - List applicable scenarios as bullets under each guideline
 
+   **File Creation Rules**:
+   - If `AGENTS.md` or `CLAUDE.md` does not exist: Create it with only the managed block and a short header
+   - If file exists but has no `<!-- DNASPEC:START/END -->` block: Append the managed block at the end of the file
+   - If managed block exists: Replace only the content between the markers, preserving all content outside the markers
+
 3. **Generate Prompt Files**:
-   - For each unique prompt across all sources:
+   - For each prompt in each source (unique pair of source name and prompt name):
      - Generate Claude command if Claude selected
      - Generate Copilot prompt if Copilot selected
+   - Filenames include source name to prevent collisions: `<source-name>-<prompt-name>`
    - Overwrite existing files
 
 4. **Claude Integration**:
-   - Create `.claude/commands/dnaspec/<prompt-name>.md`
+   - Create `.claude/commands/dnaspec/<source-name>-<prompt-name>.md`
    - Frontmatter: name, description, category, tags
    - Wrap content in `<!-- DNASPEC:START/END -->`
 
 5. **Copilot Integration**:
-   - Create `.github/prompts/dnaspec-<prompt-name>.prompt.md`
+   - Create `.github/prompts/dnaspec-<source-name>-<prompt-name>.prompt.md`
    - Frontmatter: description
    - Include `$ARGUMENTS` placeholder
    - Wrap content in `<!-- DNASPEC:START/END -->`
@@ -863,6 +910,8 @@ dnaspec sync [--dry-run]
 1. Update all sources (equivalent to `dnaspec update --all`)
 2. Regenerate agent files (equivalent to `dnaspec update-agents --no-ask`)
 3. Display summary of changes
+
+**Note**: `dnaspec sync` is designed to be non-interactive and safe for CI pipelines. It uses saved agent configurations and does not prompt for user input.
 
 **Equivalent To**:
 ```bash
@@ -1098,13 +1147,13 @@ You can add custom project-specific instructions anywhere outside the managed bl
 2. **CLAUDE.md** (managed block):
 Same content as AGENTS.md
 
-3. **.claude/commands/dnaspec/<prompt-name>.md**:
+3. **.claude/commands/dnaspec/<source-name>-<prompt-name>.md**:
 ```markdown
 ---
-name: DNASpec: Go Code Review
+name: DNASpec: Company DNA Go Code Review
 description: Review Go code against go-style DNA guideline
 category: DNASpec
-tags: [dnaspec, "go-code-review"]
+tags: [dnaspec, "company-dna-go-code-review"]
 ---
 <!-- DNASPEC:START -->
 Review the selected Go code against the go-style DNA guideline located at `@/dnaspec/company-dna/guidelines/go-style.md`.
@@ -1121,7 +1170,7 @@ Check for:
 ```bash
 # AI assistant reads CLAUDE.md instructions
 # User can invoke slash commands
-/dnaspec-go-code-review <file>
+/dnaspec-company-dna-go-code-review <file>
 ```
 
 ### GitHub Copilot (Phase 1)
@@ -1131,7 +1180,7 @@ Check for:
 1. **AGENTS.md** (managed block):
 Same as Claude Code
 
-2. **.github/prompts/dnaspec-<prompt-name>.prompt.md**:
+2. **.github/prompts/dnaspec-<source-name>-<prompt-name>.prompt.md**:
 ```markdown
 ---
 description: Review Go code against go-style DNA guideline
@@ -1161,6 +1210,10 @@ GitHub Copilot reads prompts automatically and can be invoked via Copilot chat.
 - Additional AI tools as ecosystem evolves
 
 Each new agent will have its own integration pattern, but all will consume the same DNA guidelines and prompts.
+
+### Agent Abstraction
+
+Internally, each agent implements a common interface that takes configuration, guidelines, and prompts as inputs and produces agent-specific generated files as output. The `update-agents` command iterates over the selected agents and delegates to these agent-specific generators. This design ensures that adding new agent integrations doesn't require changes to core DNASpec logic—only a new agent generator module is needed.
 
 ---
 
@@ -1267,6 +1320,36 @@ dnaspec/
     └── format/                  # Output formatting
         └── styles.{lang}        # Color schemes, icons
 ```
+
+### File Operations Best Practices
+
+#### Atomic Writes
+
+To ensure robustness and prevent corrupted files from interrupted operations, all writes to critical files should be atomic:
+
+**Files requiring atomic writes**:
+- `dnaspec.yaml` (project configuration)
+- `AGENTS.md` and `CLAUDE.md` (managed blocks)
+- Generated prompt files (`.claude/commands/dnaspec/*.md`, `.github/prompts/*.prompt.md`)
+
+**Implementation**:
+1. Write content to a temporary file in the same directory (e.g., `dnaspec.yaml.tmp`)
+2. On successful write, atomically rename the temp file to the target filename
+3. The `rename()` system call is atomic on all major filesystems
+
+This approach prevents half-written files if the process crashes or is interrupted mid-write.
+
+#### Clone Caching (Future Optimization)
+
+Currently, DNASpec clones git repositories to temporary directories and deletes them after use. For large DNA repositories and frequent operations, a caching strategy would improve performance:
+
+**Future design**:
+- Cache cloned repositories under a user-level cache directory (e.g., `~/.cache/dnaspec/<url-hash>/`)
+- Use `git fetch` + `checkout` instead of cloning from scratch on subsequent operations
+- Implement cache expiration and cleanup policies
+- Add `dnaspec cache clean` command to manually clear cache
+
+This optimization is not required for the initial implementation but is noted here for future consideration.
 
 ### Key Algorithms
 
@@ -1474,6 +1557,7 @@ Source:
     commit: string (optional, for git-repo)
     path: string (optional, for local-dir)
     symlinked: boolean (optional, for local-dir, indicates symlink mode)
+    subdir: string (optional, subdirectory path within repo/path for monorepo support)
     guidelines: list of Guideline
     prompts: list of Prompt
 
@@ -2093,8 +2177,8 @@ prompts:
 
 | Agent | ID | Phase | Integration |
 |-------|----|-|-------------|
-| Claude Code | `claude-code` | 1 (Initial) | `.claude/commands/dnaspec/`, `CLAUDE.md` |
-| GitHub Copilot | `github-copilot` | 1 (Initial) | `.github/prompts/dnaspec-*.prompt.md` |
+| Claude Code | `claude-code` | 1 (Initial) | `.claude/commands/dnaspec/<source>-<prompt>.md`, `CLAUDE.md` |
+| GitHub Copilot | `github-copilot` | 1 (Initial) | `.github/prompts/dnaspec-<source>-<prompt>.prompt.md` |
 | Windsurf | `windsurf` | 2 (Future) | TBD |
 | Cursor | `cursor` | 2 (Future) | `.cursorrules`, `.cursordocs` |
 | Antigravity | `antigravity` | 2 (Future) | TBD |
@@ -2117,6 +2201,7 @@ prompts:
 | `timeout cloning repository` | Network timeout or large repo | Check network connection, increase timeout |
 | `unknown agent ID: '<agent>'` | Invalid agent in config | Use recognized agents: claude-code, github-copilot |
 | `--symlink only works with local paths` | Using --symlink with git repo | Remove --symlink flag for git sources |
+| `symlinked source path does not exist: <path>` | Symlinked source target path missing | Update path in config or remove symlinked source |
 
 ### Naming Conventions
 
