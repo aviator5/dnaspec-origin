@@ -136,3 +136,96 @@ guidelines:
 		}
 	})
 }
+
+func TestFetchGitSource_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	t.Run("fetch from git repository", func(t *testing.T) {
+		// Use a small test repository
+		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+
+		info, cleanup, err := FetchGitSource(url, "")
+		if err != nil {
+			// Skip if test repo not available
+			if os.Getenv("CI") != "true" {
+				t.Skipf("Test repository not available: %v", err)
+			}
+			t.Fatalf("FetchGitSource() error = %v", err)
+		}
+		defer cleanup()
+
+		// Verify source info
+		if info.SourceType != "git-repo" {
+			t.Errorf("SourceType = %s, want git-repo", info.SourceType)
+		}
+
+		if info.URL != url {
+			t.Errorf("URL = %s, want %s", info.URL, url)
+		}
+
+		if info.Commit == "" {
+			t.Error("Expected non-empty commit hash")
+		}
+
+		// Verify source directory exists and is temporary
+		if _, err := os.Stat(info.SourceDir); os.IsNotExist(err) {
+			t.Error("Source directory does not exist")
+		}
+
+		// Verify cleanup works
+		tempDir := info.SourceDir
+		cleanup()
+
+		// After cleanup, temp dir should be gone
+		if _, err := os.Stat(tempDir); !os.IsNotExist(err) {
+			t.Error("Temporary directory was not cleaned up")
+		}
+	})
+
+	t.Run("fetch with specific ref", func(t *testing.T) {
+		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+
+		info, cleanup, err := FetchGitSource(url, "main")
+		if err != nil {
+			if os.Getenv("CI") != "true" {
+				t.Skipf("Test repository not available: %v", err)
+			}
+			t.Fatalf("FetchGitSource() error = %v", err)
+		}
+		defer cleanup()
+
+		if info.Ref != "main" {
+			t.Errorf("Ref = %s, want main", info.Ref)
+		}
+	})
+
+	t.Run("error on invalid repository", func(t *testing.T) {
+		url := "https://github.com/nonexistent/repo-does-not-exist-12345.git"
+
+		_, cleanup, err := FetchGitSource(url, "")
+		if cleanup != nil {
+			defer cleanup()
+		}
+
+		if err == nil {
+			t.Error("Expected error for invalid repository, got nil")
+		}
+	})
+
+	t.Run("error on missing manifest in repo", func(t *testing.T) {
+		// This would need a test repo without a manifest
+		// For now, we can test the error path with a non-DNA repo
+		url := "https://github.com/golang/example.git"
+
+		_, cleanup, err := FetchGitSource(url, "")
+		if cleanup != nil {
+			defer cleanup()
+		}
+
+		if err == nil {
+			t.Error("Expected error for repository without manifest, got nil")
+		}
+	})
+}

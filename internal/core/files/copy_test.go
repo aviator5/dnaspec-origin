@@ -151,6 +151,67 @@ func TestCopyGuidelineFiles(t *testing.T) {
 			t.Errorf("CopyGuidelineFiles() with empty lists error = %v, want nil", err)
 		}
 	})
+
+	t.Run("rollback on partial failure", func(t *testing.T) {
+		sourceDir := t.TempDir()
+		destDir := t.TempDir()
+
+		// Create source files
+		os.MkdirAll(filepath.Join(sourceDir, "guidelines"), 0755)
+		os.WriteFile(filepath.Join(sourceDir, "guidelines", "g1.md"), []byte("g1"), 0644)
+		os.WriteFile(filepath.Join(sourceDir, "guidelines", "g2.md"), []byte("g2"), 0644)
+		// Intentionally skip creating g3.md to trigger error
+
+		guidelines := []config.ManifestGuideline{
+			{Name: "g1", File: "guidelines/g1.md"},
+			{Name: "g2", File: "guidelines/g2.md"},
+			{Name: "g3", File: "guidelines/g3.md"}, // This will fail
+		}
+
+		err := CopyGuidelineFiles(sourceDir, destDir, guidelines, []config.ManifestPrompt{})
+		if err == nil {
+			t.Fatal("Expected error for missing file, got nil")
+		}
+
+		// Verify rollback: previously copied files should be removed
+		g1Path := filepath.Join(destDir, "guidelines", "g1.md")
+		if _, err := os.Stat(g1Path); !os.IsNotExist(err) {
+			t.Error("First file was not rolled back after failure")
+		}
+
+		g2Path := filepath.Join(destDir, "guidelines", "g2.md")
+		if _, err := os.Stat(g2Path); !os.IsNotExist(err) {
+			t.Error("Second file was not rolled back after failure")
+		}
+	})
+
+	t.Run("rollback on prompt copy failure", func(t *testing.T) {
+		sourceDir := t.TempDir()
+		destDir := t.TempDir()
+
+		// Create only guideline, not prompt
+		os.MkdirAll(filepath.Join(sourceDir, "guidelines"), 0755)
+		os.WriteFile(filepath.Join(sourceDir, "guidelines", "g1.md"), []byte("g1"), 0644)
+
+		guidelines := []config.ManifestGuideline{
+			{Name: "g1", File: "guidelines/g1.md"},
+		}
+
+		prompts := []config.ManifestPrompt{
+			{Name: "p1", File: "prompts/missing.md"}, // This will fail
+		}
+
+		err := CopyGuidelineFiles(sourceDir, destDir, guidelines, prompts)
+		if err == nil {
+			t.Fatal("Expected error for missing prompt file, got nil")
+		}
+
+		// Verify rollback: guideline file should be removed
+		g1Path := filepath.Join(destDir, "guidelines", "g1.md")
+		if _, err := os.Stat(g1Path); !os.IsNotExist(err) {
+			t.Error("Guideline file was not rolled back after prompt copy failure")
+		}
+	})
 }
 
 func TestCopyFile(t *testing.T) {

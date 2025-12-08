@@ -25,7 +25,7 @@
 - [x] 3.3 Implement temporary directory management in internal/core/git/tempdir.go (unique PID+random ID, cleanup function)
 - [x] 3.4 Implement git clone with shallow clone and timeout in internal/core/git/clone.go
 - [x] 3.5 Write unit tests for URL validation and temp directory cleanup
-- [ ] 3.6 Write integration tests for git clone operation
+- [x] 3.6 Write integration tests for git clone operation
 
 ## 4. Source Fetching
 
@@ -34,7 +34,7 @@
 - [x] 4.3 Add manifest validation after fetching using existing manifest-management validation
 - [x] 4.4 Add path security validation for all file references
 - [x] 4.5 Write unit tests for both git and local source fetching
-- [ ] 4.6 Write integration tests with sample repositories and directories
+- [x] 4.6 Write integration tests with sample repositories and directories
 
 ## 5. Add Command Structure
 
@@ -61,7 +61,7 @@
 - [x] 7.3 Preserve relative path structure from manifest (guidelines/, prompts/)
 - [x] 7.4 Implement atomic config writes in internal/core/config/atomic.go (temp file + rename)
 - [x] 7.5 Add error handling for disk space and permissions
-- [ ] 7.6 Implement rollback on partial copy failures
+- [x] 7.6 Implement rollback on partial copy failures
 - [x] 7.7 Write unit tests for file copying and atomic writes
 
 ## 8. Configuration Management
@@ -107,11 +107,11 @@
 
 ## 12. Documentation
 
-- [ ] 12.1 Update README with dnaspec init and dnaspec add command examples
-- [ ] 12.2 Document dnaspec.yaml configuration file structure
-- [ ] 12.3 Add troubleshooting section for common errors
-- [ ] 12.4 Create example project configurations
-- [ ] 12.5 Document flag usage and examples
+- [x] 12.1 Update README with dnaspec init and dnaspec add command examples
+- [x] 12.2 Document dnaspec.yaml configuration file structure
+- [x] 12.3 Add troubleshooting section for common errors
+- [x] 12.4 Create example project configurations
+- [x] 12.5 Document flag usage and examples
 
 ## Notes
 
