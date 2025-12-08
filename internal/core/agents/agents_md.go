@@ -18,13 +18,14 @@ func GenerateAgentsMD(cfg *config.ProjectConfig) error {
 	existingContent, err := os.ReadFile("AGENTS.md")
 	var finalContent string
 
-	if err == nil {
+	switch {
+	case err == nil:
 		// File exists, replace or append managed block
 		finalContent = files.ReplaceManagedBlock(string(existingContent), content)
-	} else if os.IsNotExist(err) {
+	case os.IsNotExist(err):
 		// File doesn't exist, create new with header
 		finalContent = files.CreateFileWithManagedBlock(content)
-	} else {
+	default:
 		return fmt.Errorf("failed to read AGENTS.md: %w", err)
 	}
 
@@ -50,7 +51,8 @@ func generateAgentsMDContent(cfg *config.ProjectConfig) string {
 
 	sb.WriteString("When working on the codebase, open and refer to the following DNA guidelines as needed:\n")
 
-	for _, source := range cfg.Sources {
+	for i := range cfg.Sources {
+		source := &cfg.Sources[i]
 		for _, guideline := range source.Guidelines {
 			// Format: @/dnaspec/<source-name>/<file>
 			path := fmt.Sprintf("@/dnaspec/%s/%s", source.Name, guideline.File)
@@ -85,8 +87,8 @@ func writeFileAtomic(path string, content []byte) error {
 	// Clean up temp file on error
 	defer func() {
 		if tmpFile != nil {
-			tmpFile.Close()
-			os.Remove(tmpPath)
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpPath)
 		}
 	}()
 

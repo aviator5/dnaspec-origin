@@ -3,12 +3,13 @@ package ui
 import (
 	"fmt"
 
-	"github.com/aviator5/dnaspec/internal/core/agents"
 	"github.com/charmbracelet/huh"
+
+	"github.com/aviator5/dnaspec/internal/core/agents"
 )
 
 // SelectAgents displays an interactive agent selection UI
-// Returns selected agent IDs or error if cancelled
+// Returns selected agent IDs or error if canceled
 func SelectAgents(currentSelection []string) ([]string, error) {
 	availableAgents := agents.GetAvailableAgents()
 
@@ -37,7 +38,7 @@ func SelectAgents(currentSelection []string) ([]string, error) {
 
 	// Run form
 	if err := form.Run(); err != nil {
-		return nil, fmt.Errorf("agent selection cancelled: %w", err)
+		return nil, fmt.Errorf("agent selection canceled: %w", err)
 	}
 
 	return selected, nil

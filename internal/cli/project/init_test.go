@@ -12,7 +12,14 @@ func TestRunInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(origDir)
+	defer func() {
+		err := os.Chdir(origDir)
+		if err != nil {
+			// t.Error cannot be used in main test default cleanup easily if main test is ending,
+			// but we can log it if strictly needed. Since this is non-critical cleanup of chdir:
+			_ = err
+		}
+	}()
 
 	t.Run("success", func(t *testing.T) {
 		tmpDir := t.TempDir()

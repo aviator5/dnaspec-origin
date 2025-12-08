@@ -9,8 +9,8 @@ import (
 // Extracts prompts referenced by selected guidelines
 func AddSource(cfg *ProjectConfig, source ProjectSource) error {
 	// Check for duplicate source names
-	for _, existing := range cfg.Sources {
-		if existing.Name == source.Name {
+	for i := range cfg.Sources {
+		if cfg.Sources[i].Name == source.Name {
 			return fmt.Errorf("source with name '%s' already exists, use --name to specify a different name", source.Name)
 		}
 	}
@@ -35,11 +35,7 @@ func ExtractReferencedPrompts(selectedGuidelines []ManifestGuideline, allPrompts
 	var result []ProjectPrompt
 	for _, p := range allPrompts {
 		if referenced[p.Name] {
-			result = append(result, ProjectPrompt{
-				Name:        p.Name,
-				File:        p.File,
-				Description: p.Description,
-			})
+			result = append(result, ProjectPrompt(p))
 		}
 	}
 
@@ -50,13 +46,7 @@ func ExtractReferencedPrompts(selectedGuidelines []ManifestGuideline, allPrompts
 func ManifestGuidelinesToProject(guidelines []ManifestGuideline) []ProjectGuideline {
 	result := make([]ProjectGuideline, len(guidelines))
 	for i, g := range guidelines {
-		result[i] = ProjectGuideline{
-			Name:                g.Name,
-			File:                g.File,
-			Description:         g.Description,
-			ApplicableScenarios: g.ApplicableScenarios,
-			Prompts:             g.Prompts,
-		}
+		result[i] = ProjectGuideline(g)
 	}
 	return result
 }

@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestFetchLocalSource(t *testing.T) {
@@ -59,10 +61,14 @@ func TestFetchLocalSource(t *testing.T) {
 	t.Run("error on file instead of directory", func(t *testing.T) {
 		// Create a temp file
 		tmpFile, _ := os.CreateTemp("", "testfile")
-		defer os.Remove(tmpFile.Name())
-		tmpFile.Close()
+		defer func() {
+			err := os.Remove(tmpFile.Name())
+			require.NoError(t, err)
+		}()
+		err := tmpFile.Close()
+		require.NoError(t, err)
 
-		_, err := FetchLocalSource(tmpFile.Name())
+		_, err = FetchLocalSource(tmpFile.Name())
 		if err == nil {
 			t.Error("Expected error for file instead of directory, got nil")
 		}
@@ -83,9 +89,10 @@ func TestFetchLocalSource(t *testing.T) {
 
 		// Create invalid manifest
 		manifestPath := filepath.Join(tmpDir, "dnaspec-manifest.yaml")
-		os.WriteFile(manifestPath, []byte("invalid: [[["), 0644)
+		err := os.WriteFile(manifestPath, []byte("invalid: [[["), 0644)
+		require.NoError(t, err)
 
-		_, err := FetchLocalSource(tmpDir)
+		_, err = FetchLocalSource(tmpDir)
 		if err == nil {
 			t.Error("Expected error for invalid manifest, got nil")
 		}
@@ -123,9 +130,10 @@ guidelines:
     applicable_scenarios:
       - "test"
 `
-		os.WriteFile(manifestPath, []byte(invalidManifest), 0644)
+		err := os.WriteFile(manifestPath, []byte(invalidManifest), 0644)
+		require.NoError(t, err)
 
-		_, err := FetchLocalSource(tmpDir)
+		_, err = FetchLocalSource(tmpDir)
 		if err == nil {
 			t.Error("Expected validation error for missing guideline file, got nil")
 		}
@@ -141,6 +149,9 @@ func TestFetchGitSource_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
+
+	// Disable git terminal prompts to prevent hanging on authentication
+	t.Setenv("GIT_TERMINAL_PROMPT", "0")
 
 	t.Run("fetch from git repository", func(t *testing.T) {
 		// Use a small test repository

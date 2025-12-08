@@ -6,17 +6,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aviator5/dnaspec/internal/core/config"
-	"github.com/aviator5/dnaspec/internal/core/files"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/aviator5/dnaspec/internal/core/config"
+	"github.com/aviator5/dnaspec/internal/core/files"
 )
 
 func TestGenerateAgentsMDContent(t *testing.T) {
 	tests := []struct {
-		name     string
-		config   *config.ProjectConfig
-		contains []string
+		name        string
+		config      *config.ProjectConfig
+		contains    []string
 		notContains []string
 	}{
 		{
@@ -126,7 +127,10 @@ func TestGenerateAgentsMD(t *testing.T) {
 	// Create temp directory for test
 	tempDir := t.TempDir()
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err := os.Chdir(tempDir)
 	require.NoError(t, err)

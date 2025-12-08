@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 // NewListCmd creates the list command for displaying project configuration
@@ -36,7 +37,10 @@ func runList() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Project configuration not found:", ui.CodeStyle.Render(projectConfigFileName))
-			fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"), ui.SubtleStyle.Render("to create a new project configuration."))
+			fmt.Println(
+				ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"),
+				ui.SubtleStyle.Render("to create a new project configuration."),
+			)
 			return fmt.Errorf("project configuration not found")
 		}
 		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Failed to load project configuration:", err)
@@ -80,12 +84,14 @@ func displaySources(cfg *config.ProjectConfig) {
 	}
 
 	fmt.Println()
-	for i, source := range cfg.Sources {
+	for i := range cfg.Sources {
+		source := &cfg.Sources[i]
 		// Display source name with type
 		fmt.Printf("%s (%s)\n", source.Name, source.Type)
 
 		// Display type-specific metadata
-		if source.Type == "git-repo" {
+		switch source.Type {
+		case config.SourceTypeGitRepo:
 			fmt.Printf("  URL: %s\n", source.URL)
 			if source.Ref != "" {
 				fmt.Printf("  Ref: %s\n", source.Ref)
@@ -98,15 +104,15 @@ func displaySources(cfg *config.ProjectConfig) {
 				}
 				fmt.Printf("  Commit: %s\n", commitDisplay)
 			}
-		} else if source.Type == "local-dir" {
+		case config.SourceTypeLocalPath:
 			fmt.Printf("  Path: %s\n", source.Path)
 		}
 
 		// Display guidelines
-		displayGuidelines(source)
+		displayGuidelines(*source)
 
 		// Display prompts
-		displayPrompts(source)
+		displayPrompts(*source)
 
 		// Add blank line between sources (except after the last one)
 		if i < len(cfg.Sources)-1 {

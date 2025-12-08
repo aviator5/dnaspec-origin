@@ -9,11 +9,11 @@ import (
 
 // GenerationSummary contains counts of generated files
 type GenerationSummary struct {
-	AgentsMD        bool
-	ClaudeMD        bool
-	ClaudeCommands  int
-	CopilotPrompts  int
-	Errors          []error
+	AgentsMD       bool
+	ClaudeMD       bool
+	ClaudeCommands int
+	CopilotPrompts int
+	Errors         []error
 }
 
 // GenerateAgentFiles generates all agent integration files based on config and selected agents
@@ -44,7 +44,8 @@ func GenerateAgentFiles(cfg *config.ProjectConfig, agents []string) (*Generation
 	}
 
 	// Generate prompt files for each source
-	for _, source := range cfg.Sources {
+	for i := range cfg.Sources {
+		source := &cfg.Sources[i]
 		sourceDir := filepath.Join("dnaspec", source.Name)
 
 		for _, prompt := range source.Prompts {

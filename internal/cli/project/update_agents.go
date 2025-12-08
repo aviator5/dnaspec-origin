@@ -44,7 +44,7 @@ func runUpdateAgents(cmd *cobra.Command, args []string) error {
 	cfg, err := config.LoadProjectConfig("dnaspec.yaml")
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("dnaspec.yaml not found. Run 'dnaspec init' first.")
+			return fmt.Errorf("dnaspec.yaml not found, run 'dnaspec init' first")
 		}
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -61,7 +61,7 @@ func runUpdateAgents(cmd *cobra.Command, args []string) error {
 	if noAskFlag {
 		// Non-interactive mode: use saved configuration
 		if len(cfg.Agents) == 0 {
-			return fmt.Errorf("no agents configured. Run without --no-ask to select agents.")
+			return fmt.Errorf("no agents configured, run without --no-ask to select agents")
 		}
 		selectedAgents = cfg.Agents
 		fmt.Println(ui.InfoStyle.Render(fmt.Sprintf("Using saved agents: %v", selectedAgents)))
@@ -69,7 +69,7 @@ func runUpdateAgents(cmd *cobra.Command, args []string) error {
 		// Interactive mode: prompt for agent selection
 		selected, err := ui.SelectAgents(cfg.Agents)
 		if err != nil {
-			return fmt.Errorf("agent selection cancelled: %w", err)
+			return fmt.Errorf("agent selection canceled: %w", err)
 		}
 		selectedAgents = selected
 

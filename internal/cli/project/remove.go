@@ -43,23 +43,54 @@ confirmation before proceeding. Use --force to skip the confirmation.`,
 	return cmd
 }
 
+const responseYes = "yes"
+
 func runRemove(sourceName string, force bool) error {
+	cfg, sourceIndex, err := loadConfigAndFindSource(sourceName)
+	if err != nil {
+		return err
+	}
+
+	// Display impact
+	displayImpact(sourceName)
+
+	// Confirmation prompt (unless --force is set)
+	if !force {
+		confirmed, err := confirmRemoval()
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			fmt.Println(ui.SubtleStyle.Render("\nCanceled. No changes made."))
+			return nil
+		}
+	}
+
+	fmt.Println()
+
+	return performRemoval(cfg, sourceName, sourceIndex)
+}
+
+func loadConfigAndFindSource(sourceName string) (*config.ProjectConfig, int, error) {
 	// Load project configuration
 	cfg, err := config.LoadProjectConfig(projectConfigFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Project configuration not found:", ui.CodeStyle.Render(projectConfigFileName))
-			fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"), ui.SubtleStyle.Render("to create a new project configuration."))
-			return fmt.Errorf("project configuration not found")
+			fmt.Println(
+				ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"),
+				ui.SubtleStyle.Render("to create a new project configuration."),
+			)
+			return nil, -1, fmt.Errorf("project configuration not found")
 		}
 		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Failed to load project configuration:", err)
-		return err
+		return nil, -1, err
 	}
 
 	// Find source by name
 	sourceIndex := -1
-	for i, source := range cfg.Sources {
-		if source.Name == sourceName {
+	for i := range cfg.Sources {
+		if cfg.Sources[i].Name == sourceName {
 			sourceIndex = i
 			break
 		}
@@ -69,40 +100,33 @@ func runRemove(sourceName string, force bool) error {
 		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Source not found:", ui.CodeStyle.Render(sourceName))
 		if len(cfg.Sources) > 0 {
 			fmt.Println(ui.SubtleStyle.Render("\nAvailable sources:"))
-			for _, source := range cfg.Sources {
-				fmt.Println("  -", source.Name)
+			for i := range cfg.Sources {
+				fmt.Println("  -", cfg.Sources[i].Name)
 			}
 		} else {
 			fmt.Println(ui.SubtleStyle.Render("\nNo sources configured."))
 		}
-		return fmt.Errorf("source not found: %s", sourceName)
+		return nil, -1, fmt.Errorf("source not found: %s", sourceName)
 	}
 
-	// Display impact
-	if err := displayImpact(sourceName); err != nil {
-		return fmt.Errorf("failed to display impact: %w", err)
-	}
+	return cfg, sourceIndex, nil
+}
 
-	// Confirmation prompt (unless --force is set)
-	if !force {
-		fmt.Println()
-		fmt.Print(ui.SubtleStyle.Render("This cannot be undone. Continue? [y/N]: "))
-
-		reader := bufio.NewReader(os.Stdin)
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("failed to read input: %w", err)
-		}
-
-		response = strings.TrimSpace(strings.ToLower(response))
-		if response != "y" && response != "yes" {
-			fmt.Println(ui.SubtleStyle.Render("\nCancelled. No changes made."))
-			return nil
-		}
-	}
-
+func confirmRemoval() (bool, error) {
 	fmt.Println()
+	fmt.Print(ui.SubtleStyle.Render("This cannot be undone. Continue? [y/N]: "))
 
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false, fmt.Errorf("failed to read input: %w", err)
+	}
+
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "y" || response == responseYes, nil
+}
+
+func performRemoval(cfg *config.ProjectConfig, sourceName string, sourceIndex int) error {
 	// Delete generated agent files
 	deletedCount, err := deleteGeneratedFiles(sourceName)
 	if err != nil {
@@ -135,7 +159,7 @@ func runRemove(sourceName string, force bool) error {
 	return nil
 }
 
-func displayImpact(sourceName string) error {
+func displayImpact(sourceName string) {
 	fmt.Println(ui.SubtleStyle.Render("\nThe following will be deleted:"))
 
 	// Config entry
@@ -178,8 +202,6 @@ func displayImpact(sourceName string) error {
 	if err == nil && len(copilotFiles) > 0 {
 		fmt.Printf("  - .github/prompts/dnaspec-%s-*.prompt.md (%d files)\n", sourceName, len(copilotFiles))
 	}
-
-	return nil
 }
 
 func deleteGeneratedFiles(sourceName string) (int, error) {

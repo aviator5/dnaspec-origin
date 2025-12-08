@@ -659,11 +659,11 @@ func TestValidator_ComplexScenario(t *testing.T) {
 
 	// Setup files
 	files := map[string]string{
-		"guidelines/go-style.md":    "# Go Style",
-		"guidelines/rest-api.md":    "# REST API",
-		"prompts/code-review.md":    "# Code Review",
-		"prompts/api-design.md":     "# API Design",
-		"prompts/documentation.md":  "# Documentation",
+		"guidelines/go-style.md":   "# Go Style",
+		"guidelines/rest-api.md":   "# REST API",
+		"prompts/code-review.md":   "# Code Review",
+		"prompts/api-design.md":    "# API Design",
+		"prompts/documentation.md": "# Documentation",
 	}
 
 	for path, content := range files {

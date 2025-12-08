@@ -6,6 +6,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Source types
+const (
+	SourceTypeGitRepo   = "git-repo"
+	SourceTypeLocalPath = "local-path"
+)
+
 // ProjectConfig represents the dnaspec.yaml structure
 type ProjectConfig struct {
 	Version int             `yaml:"version"`
@@ -15,14 +21,14 @@ type ProjectConfig struct {
 
 // ProjectSource represents a DNA source in the project configuration
 type ProjectSource struct {
-	Name       string              `yaml:"name"`
-	Type       string              `yaml:"type"` // "git-repo" or "local-path"
-	URL        string              `yaml:"url,omitempty"`
-	Path       string              `yaml:"path,omitempty"`
-	Ref        string              `yaml:"ref,omitempty"`
-	Commit     string              `yaml:"commit,omitempty"`
-	Guidelines []ProjectGuideline  `yaml:"guidelines,omitempty"`
-	Prompts    []ProjectPrompt     `yaml:"prompts,omitempty"`
+	Name       string             `yaml:"name"`
+	Type       string             `yaml:"type"` // "git-repo" or "local-path"
+	URL        string             `yaml:"url,omitempty"`
+	Path       string             `yaml:"path,omitempty"`
+	Ref        string             `yaml:"ref,omitempty"`
+	Commit     string             `yaml:"commit,omitempty"`
+	Guidelines []ProjectGuideline `yaml:"guidelines,omitempty"`
+	Prompts    []ProjectPrompt    `yaml:"prompts,omitempty"`
 }
 
 // ProjectGuideline represents a guideline in the project configuration
@@ -63,7 +69,7 @@ func SaveProjectConfig(path string, config *ProjectConfig) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o644)
 }
 
 // AtomicWriteProjectConfig writes a project config atomically using a temp file
@@ -75,7 +81,7 @@ func AtomicWriteProjectConfig(path string, config *ProjectConfig) error {
 
 	// Write to temp file
 	tmpFile := path + ".tmp"
-	if err := os.WriteFile(tmpFile, data, 0644); err != nil {
+	if err := os.WriteFile(tmpFile, data, 0o644); err != nil {
 		return err
 	}
 

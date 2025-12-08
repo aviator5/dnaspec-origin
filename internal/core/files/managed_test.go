@@ -9,11 +9,11 @@ import (
 
 func TestDetectManagedBlock(t *testing.T) {
 	tests := []struct {
-		name          string
-		content       string
-		expectFound   bool
-		expectStart   int
-		expectEnd     int
+		name        string
+		content     string
+		expectFound bool
+		expectStart int
+		expectEnd   int
 	}{
 		{
 			name: "content with valid managed block",

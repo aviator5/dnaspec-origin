@@ -11,6 +11,9 @@ func TestCloneRepo_Integration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	// Disable git terminal prompts to prevent hanging on authentication
+	t.Setenv("GIT_TERMINAL_PROMPT", "0")
+
 	t.Run("clone public repository", func(t *testing.T) {
 		destDir := t.TempDir()
 

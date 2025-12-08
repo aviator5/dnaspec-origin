@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/core/validate"
 	"github.com/aviator5/dnaspec/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 // NewValidateCmd creates the manifest validate subcommand
@@ -38,7 +39,10 @@ func runValidate() error {
 	// Check if manifest exists
 	if _, err := os.Stat(manifestFileName); os.IsNotExist(err) {
 		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), ui.CodeStyle.Render(manifestFileName), "not found")
-		fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec manifest init"), ui.SubtleStyle.Render("to create a new manifest."))
+		fmt.Println(
+			ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec manifest init"),
+			ui.SubtleStyle.Render("to create a new manifest."),
+		)
 		return fmt.Errorf("manifest file not found")
 	}
 
@@ -66,7 +70,11 @@ func runValidate() error {
 		fmt.Println("  •", ui.CodeStyle.Render(err.Field)+":", err.Message)
 	}
 	fmt.Println()
-	fmt.Println(ui.SubtleStyle.Render("Fix these errors and run"), ui.CodeStyle.Render("dnaspec manifest validate"), ui.SubtleStyle.Render("again."))
+	fmt.Println(
+		ui.SubtleStyle.Render("Fix these errors and run"),
+		ui.CodeStyle.Render("dnaspec manifest validate"),
+		ui.SubtleStyle.Render("again."),
+	)
 
 	return fmt.Errorf("validation failed")
 }

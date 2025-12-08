@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 const manifestFileName = "dnaspec-manifest.yaml"
@@ -49,7 +50,10 @@ func runInit() error {
 	fmt.Println()
 	fmt.Println(ui.InfoStyle.Render("Next steps:"))
 	fmt.Println("  1. Edit the manifest file to add your guidelines and prompts")
-	fmt.Println("  2. Create the referenced files in", ui.CodeStyle.Render("guidelines/"), "and", ui.CodeStyle.Render("prompts/"), "directories")
+	fmt.Println(
+		"  2. Create the referenced files in", ui.CodeStyle.Render("guidelines/"),
+		"and", ui.CodeStyle.Render("prompts/"), "directories",
+	)
 	fmt.Println("  3. Run", ui.CodeStyle.Render("dnaspec manifest validate"), "to check your manifest")
 
 	return nil

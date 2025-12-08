@@ -5,11 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/core/files"
 	"github.com/aviator5/dnaspec/internal/core/source"
 	"github.com/aviator5/dnaspec/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 type addFlags struct {
@@ -69,17 +70,8 @@ guidelines to include, and copies them to your project's dnaspec/ directory.`,
 }
 
 func runAdd(flags addFlags, args []string) error {
-	// Validate flags
-	if flags.gitRepo == "" && len(args) == 0 {
-		return fmt.Errorf("must specify either --git-repo or a local path")
-	}
-
-	if flags.gitRepo != "" && len(args) > 0 {
-		return fmt.Errorf("cannot specify both --git-repo and a local path")
-	}
-
-	if flags.all && len(flags.guidelines) > 0 {
-		return fmt.Errorf("cannot use both --all and --guideline flags")
+	if err := validateAddFlags(flags, args); err != nil {
+		return err
 	}
 
 	// Check project config exists
@@ -96,50 +88,23 @@ func runAdd(flags addFlags, args []string) error {
 	}
 
 	// Fetch source
-	var sourceInfo *source.SourceInfo
-	var cleanup func()
-
-	if flags.gitRepo != "" {
-		fmt.Println(ui.InfoStyle.Render("⏳ Cloning repository..."))
-		sourceInfo, cleanup, err = source.FetchGitSource(flags.gitRepo, flags.gitRef)
-		if err != nil {
-			return fmt.Errorf("failed to fetch git source: %w", err)
-		}
-		defer cleanup()
-	} else {
-		localPath := args[0]
-		fmt.Println(ui.InfoStyle.Render("⏳ Loading local source..."))
-		sourceInfo, err = source.FetchLocalSource(localPath)
-		if err != nil {
-			return fmt.Errorf("failed to fetch local source: %w", err)
-		}
+	sourceInfo, cleanup, err := fetchSource(flags, args)
+	if err != nil {
+		return err
 	}
+	defer cleanup()
 
 	fmt.Println(ui.SuccessStyle.Render("✓"), "Source loaded successfully")
 
 	// Select guidelines
-	var selectedGuidelines []config.ManifestGuideline
+	selectedGuidelines, err := selectGuidelines(flags, sourceInfo)
+	if err != nil {
+		return err
+	}
 
-	if flags.all {
-		selectedGuidelines = sourceInfo.Manifest.Guidelines
-		fmt.Println(ui.InfoStyle.Render("ℹ"), "Selected all", len(selectedGuidelines), "guidelines")
-	} else if len(flags.guidelines) > 0 {
-		selectedGuidelines, err = ui.SelectGuidelinesByName(sourceInfo.Manifest.Guidelines, flags.guidelines)
-		if err != nil {
-			return fmt.Errorf("failed to select guidelines: %w", err)
-		}
-		fmt.Println(ui.InfoStyle.Render("ℹ"), "Selected", len(selectedGuidelines), "guidelines")
-	} else {
-		// Interactive selection
-		selectedGuidelines, err = ui.SelectGuidelines(sourceInfo.Manifest.Guidelines)
-		if err != nil {
-			return fmt.Errorf("failed to select guidelines: %w", err)
-		}
-
-		if len(selectedGuidelines) == 0 {
-			fmt.Println(ui.SubtleStyle.Render("No guidelines selected. Exiting."))
-			return nil
-		}
+	if len(selectedGuidelines) == 0 {
+		fmt.Println(ui.SubtleStyle.Render("No guidelines selected. Exiting."))
+		return nil
 	}
 
 	// Derive source name
@@ -149,8 +114,8 @@ func runAdd(flags addFlags, args []string) error {
 	}
 
 	// Check for duplicate source name
-	for _, existing := range cfg.Sources {
-		if existing.Name == sourceName {
+	for i := range cfg.Sources {
+		if cfg.Sources[i].Name == sourceName {
 			return fmt.Errorf("source with name '%s' already exists, use --name to specify a different name", sourceName)
 		}
 	}
@@ -172,18 +137,7 @@ func runAdd(flags addFlags, args []string) error {
 
 	// Preview mode
 	if flags.dryRun {
-		fmt.Println()
-		fmt.Println(ui.InfoStyle.Render("Dry run - would add source:"))
-		fmt.Println("  Name:", ui.CodeStyle.Render(newSource.Name))
-		fmt.Println("  Type:", newSource.Type)
-		if newSource.URL != "" {
-			fmt.Println("  URL:", newSource.URL)
-		}
-		if newSource.Path != "" {
-			fmt.Println("  Path:", newSource.Path)
-		}
-		fmt.Println("  Guidelines:", len(newSource.Guidelines))
-		fmt.Println("  Prompts:", len(newSource.Prompts))
+		printDryRun(newSource)
 		return nil
 	}
 
@@ -206,6 +160,85 @@ func runAdd(flags addFlags, args []string) error {
 	}
 
 	// Success message
+	printSuccess(newSource, destDir)
+
+	return nil
+}
+
+func validateAddFlags(flags addFlags, args []string) error {
+	if flags.gitRepo == "" && len(args) == 0 {
+		return fmt.Errorf("must specify either --git-repo or a local path")
+	}
+
+	if flags.gitRepo != "" && len(args) > 0 {
+		return fmt.Errorf("cannot specify both --git-repo and a local path")
+	}
+
+	if flags.all && len(flags.guidelines) > 0 {
+		return fmt.Errorf("cannot use both --all and --guideline flags")
+	}
+	return nil
+}
+
+func fetchSource(flags addFlags, args []string) (*source.SourceInfo, func(), error) {
+	if flags.gitRepo != "" {
+		fmt.Println(ui.InfoStyle.Render("⏳ Cloning repository..."))
+		sourceInfo, cleanup, err := source.FetchGitSource(flags.gitRepo, flags.gitRef)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to fetch git source: %w", err)
+		}
+		return sourceInfo, cleanup, nil
+	}
+
+	localPath := args[0]
+	fmt.Println(ui.InfoStyle.Render("⏳ Loading local source..."))
+	sourceInfo, err := source.FetchLocalSource(localPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch local source: %w", err)
+	}
+	return sourceInfo, func() {}, nil
+}
+
+func selectGuidelines(flags addFlags, sourceInfo *source.SourceInfo) ([]config.ManifestGuideline, error) {
+	if flags.all {
+		selected := sourceInfo.Manifest.Guidelines
+		fmt.Println(ui.InfoStyle.Render("ℹ"), "Selected all", len(selected), "guidelines")
+		return selected, nil
+	}
+
+	if len(flags.guidelines) > 0 {
+		selected, err := ui.SelectGuidelinesByName(sourceInfo.Manifest.Guidelines, flags.guidelines)
+		if err != nil {
+			return nil, fmt.Errorf("failed to select guidelines: %w", err)
+		}
+		fmt.Println(ui.InfoStyle.Render("ℹ"), "Selected", len(selected), "guidelines")
+		return selected, nil
+	}
+
+	// Interactive selection
+	selected, err := ui.SelectGuidelines(sourceInfo.Manifest.Guidelines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select guidelines: %w", err)
+	}
+	return selected, nil
+}
+
+func printDryRun(newSource config.ProjectSource) {
+	fmt.Println()
+	fmt.Println(ui.InfoStyle.Render("Dry run - would add source:"))
+	fmt.Println("  Name:", ui.CodeStyle.Render(newSource.Name))
+	fmt.Println("  Type:", newSource.Type)
+	if newSource.URL != "" {
+		fmt.Println("  URL:", newSource.URL)
+	}
+	if newSource.Path != "" {
+		fmt.Println("  Path:", newSource.Path)
+	}
+	fmt.Println("  Guidelines:", len(newSource.Guidelines))
+	fmt.Println("  Prompts:", len(newSource.Prompts))
+}
+
+func printSuccess(newSource config.ProjectSource, destDir string) {
 	fmt.Println()
 	fmt.Println(ui.SuccessStyle.Render("✓ Success:"), "Added source", ui.CodeStyle.Render(newSource.Name))
 	fmt.Println("  Guidelines:", len(newSource.Guidelines))
@@ -214,6 +247,4 @@ func runAdd(flags addFlags, args []string) error {
 	fmt.Println()
 	fmt.Println(ui.SubtleStyle.Render("Next steps:"))
 	fmt.Println("  Run", ui.CodeStyle.Render("dnaspec update-agents"), "to configure AI agents")
-
-	return nil
 }

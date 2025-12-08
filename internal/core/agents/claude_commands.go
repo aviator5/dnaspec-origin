@@ -18,7 +18,7 @@ func GenerateClaudeCommand(sourceName string, prompt config.ProjectPrompt, sourc
 
 	// Create directory if needed
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
@@ -63,7 +63,7 @@ func generateClaudeCommandContent(sourceName string, prompt config.ProjectPrompt
 func formatSourceName(name string) string {
 	parts := strings.Split(name, "-")
 	for i, part := range parts {
-		if len(part) > 0 {
+		if part != "" {
 			parts[i] = strings.ToUpper(part[:1]) + part[1:]
 		}
 	}
@@ -74,7 +74,7 @@ func formatSourceName(name string) string {
 func formatPromptName(name string) string {
 	parts := strings.Split(name, "-")
 	for i, part := range parts {
-		if len(part) > 0 {
+		if part != "" {
 			parts[i] = strings.ToUpper(part[:1]) + part[1:]
 		}
 	}

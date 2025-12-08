@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aviator5/dnaspec/internal/core/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddCommand_Integration(t *testing.T) {
@@ -18,7 +19,10 @@ func TestAddCommand_Integration(t *testing.T) {
 		// Create a temporary project directory
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() {
+			err := os.Chdir(origDir)
+			require.NoError(t, err)
+		}()
 
 		// Change to project directory
 		if err := os.Chdir(projectDir); err != nil {
@@ -81,12 +85,17 @@ func TestAddCommand_Integration(t *testing.T) {
 	t.Run("add with specific guidelines", func(t *testing.T) {
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() {
+			err := os.Chdir(origDir)
+			require.NoError(t, err)
+		}()
 
-		os.Chdir(projectDir)
+		err := os.Chdir(projectDir)
+		require.NoError(t, err)
 
 		// Initialize project
-		runInit()
+		err = runInit()
+		require.NoError(t, err)
 
 		// Get path to test fixture
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
@@ -125,10 +134,15 @@ func TestAddCommand_Integration(t *testing.T) {
 	t.Run("add with custom source name", func(t *testing.T) {
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() {
+			err := os.Chdir(origDir)
+			require.NoError(t, err)
+		}()
 
-		os.Chdir(projectDir)
-		runInit()
+		err := os.Chdir(projectDir)
+		require.NoError(t, err)
+		err = runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 
@@ -161,9 +175,13 @@ func TestAddCommand_Integration(t *testing.T) {
 	t.Run("error when project not initialized", func(t *testing.T) {
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() {
+			err := os.Chdir(origDir)
+			require.NoError(t, err)
+		}()
 
-		os.Chdir(projectDir)
+
+		require.NoError(t, os.Chdir(projectDir))
 		// Don't run init
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
@@ -180,10 +198,15 @@ func TestAddCommand_Integration(t *testing.T) {
 	t.Run("error on duplicate source name", func(t *testing.T) {
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() {
+			err := os.Chdir(origDir)
+			require.NoError(t, err)
+		}()
 
-		os.Chdir(projectDir)
-		runInit()
+		err := os.Chdir(projectDir)
+		require.NoError(t, err)
+		err = runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 
@@ -196,7 +219,7 @@ func TestAddCommand_Integration(t *testing.T) {
 		}
 
 		// Try to add again with same name
-		err := runAdd(flags, args)
+		err = runAdd(flags, args)
 		if err == nil {
 			t.Error("Expected error for duplicate source name, got nil")
 		}
@@ -205,10 +228,15 @@ func TestAddCommand_Integration(t *testing.T) {
 	t.Run("dry-run mode", func(t *testing.T) {
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
+		defer func() {
+			err := os.Chdir(origDir)
+			require.NoError(t, err)
+		}()
 
-		os.Chdir(projectDir)
-		runInit()
+		err := os.Chdir(projectDir)
+		require.NoError(t, err)
+		err = runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 

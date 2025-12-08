@@ -188,7 +188,7 @@ func TestRemoveCommand_MultipleSourcesRemoveOne(t *testing.T) {
 			},
 			{
 				Name: "source-3",
-				Type: "local-dir",
+				Type: config.SourceTypeLocalPath,
 				Path: "/test/path",
 			},
 		},

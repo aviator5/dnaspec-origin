@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/aviator5/dnaspec/internal/core/config"
 )
 
 func TestInitCmd_Success(t *testing.T) {
@@ -15,7 +16,10 @@ func TestInitCmd_Success(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -42,7 +46,10 @@ func TestInitCmd_FileAlreadyExists(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -67,7 +74,10 @@ func TestInitCmd_CreatesValidManifest(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)

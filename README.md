@@ -1,5 +1,7 @@
 # DNASpec
 
+[![CI](https://github.com/aviator5/dnaspec/actions/workflows/ci.yml/badge.svg)](https://github.com/aviator5/dnaspec/actions/workflows/ci.yml)
+
 DNASpec is a tool that helps project developers integrate DNA (Development & Architecture) guidelines into their projects, and helps DNA repository maintainers create and validate manifest files.
 
 ## Installation
