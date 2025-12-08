@@ -2,598 +2,284 @@
 
 [![CI](https://github.com/aviator5/dnaspec/actions/workflows/ci.yml/badge.svg)](https://github.com/aviator5/dnaspec/actions/workflows/ci.yml)
 
-DNASpec is a tool that helps project developers integrate DNA (Development & Architecture) guidelines into their projects, and helps DNA repository maintainers create and validate manifest files.
+DNASpec is a CLI tool for managing DNA (Development & Architecture) guidelines across projects. It distributes reusable development patterns from centralized repositories and makes them available to AI coding assistants like Claude Code and GitHub Copilot.
 
-## Installation
+## What are DNA Guidelines?
 
-```bash
-go install github.com/aviator5/dnaspec/cmd/dnaspec@latest
+DNA guidelines are reusable development patterns, architectural principles, and best practices that can be shared across multiple projects. They help teams:
+
+- **Maintain Consistency**: Apply the same standards across all projects
+- **Share Knowledge**: Centralize best practices in version-controlled repositories
+- **Empower AI Agents**: Provide context-aware guidance to Claude Code, GitHub Copilot, and other AI assistants
+- **Stay Updated**: Pull latest guidelines into projects with a single command
+
+Examples of DNA guidelines:
+- Code style conventions (Go, Python, TypeScript)
+- Architectural patterns (microservices, hexagonal architecture)
+- API design principles (REST, GraphQL)
+- Database design patterns (schema design, migrations)
+- Security best practices (authentication, authorization)
+
+## Guidelines and Prompts
+
+DNASpec uses two types of content to help AI agents:
+
+### Guidelines
+
+**Guidelines** are markdown documents that define development standards and architectural patterns.
+
+Examples:
+- `go-style.md` - Go coding conventions and idioms
+- `rest-api.md` - REST API design principles and patterns
+- `error-handling.md` - Error handling strategies and best practices
+- `database-design.md` - Database schema design patterns
+
+### Prompts
+
+**Prompts** are actionable instructions that tell AI agents how to apply the guidelines.
+
+Examples:
+- `go-code-review` - Review code against go-style guideline
+- `api-design-review` - Validate API design against REST principles
+- `refactor-for-patterns` - Suggest refactoring based on architectural guidelines
+- `security-audit` - Audit code for security issues using security guidelines
+
+### How They Work Together
+
+1. **Guidelines provide the "what"**: Standards, patterns, and best practices
+2. **AI agents always have access to guidelines**: Through AGENTS.md/CLAUDE.md, AI agents can reference guidelines whenever working in your project
+3. **Prompts provide explicit actions**: Specific tasks that tell AI agents exactly what to do (review, validate, generate, etc.)
+4. **Prompts become commands**: In Claude Code they become `/` slash commands, in GitHub Copilot they become chat prompts
+
+**Two ways AI agents use guidelines:**
+
+**1. Contextual use (automatic):**
+```
+User: "Help me refactor this Go function"
+
+Claude Code:
+1. Sees you're working with Go code
+2. Reads CLAUDE.md and finds go-style guideline applies to "refactoring Go code"
+3. References go-style.md guideline automatically
+4. Provides refactoring suggestions following the guidelines
+```
+
+**2. Explicit use (via prompts):**
+```
+User types: /dnaspec-company-go-code-review
+
+Claude Code:
+1. Executes the go-code-review prompt
+2. Reads the go-style.md guideline
+3. Reviews code against the guidelines
+4. Provides specific feedback with line numbers
+```
+
+## Why DNASpec?
+
+**Problem**: Development teams struggle to share and enforce best practices across projects. Guidelines often live in wikis, become outdated, and are hard for AI assistants to access.
+
+**Solution**: DNASpec provides:
+- **Centralized Guidelines**: Version-controlled DNA repositories accessible via git
+- **Easy Distribution**: Add guidelines to any project with `dnaspec add <repo>`
+- **AI Integration**: Automatically generate files for Claude Code, GitHub Copilot, and future AI tools
+- **Stay Updated**: Pull latest guidelines with `dnaspec update`
+- **Multi-Source Support**: Combine guidelines from company, team, and personal repositories
+
+## Supported AI Agents
+
+**Current (Phase 1):**
+- **Claude Code** - Anthropic's AI assistant with slash commands and project context
+- **GitHub Copilot** - GitHub's AI pair programmer with chat prompts
+
+**Future (Phase 2+):**
+- **Windsurf** - AI-powered code editor
+- **Cursor** - AI-first code editor
+- **Antigravity** - AI development assistant
+- Additional AI tools as the ecosystem evolves
+
+## How It Works
+
+### User Workflow
+
+```mermaid
+graph LR
+    A[dnaspec init] --> B[dnaspec add]
+    B --> C[Select guidelines]
+    C --> D[dnaspec update-agents]
+    D --> E[AI agents use guidelines]
+    F[dnaspec update] -.periodic.-> D
+
+    style A fill:#e1f5ff
+    style B fill:#e1f5ff
+    style C fill:#e1f5ff
+    style D fill:#e1f5ff
+    style E fill:#c8e6c9
+    style F fill:#fff9c4
+```
+
+### System Architecture
+
+```mermaid
+graph TB
+    subgraph "DNA Sources"
+        S1[Git Repository]
+        S2[Local Directory<br/><i>git submodule or regular dir</i>]
+    end
+
+    subgraph "DNASpec"
+        D[dnaspec.yaml<br/>configuration]
+        G[dnaspec/<br/>guidelines & prompts]
+    end
+
+    subgraph "Generated Files"
+        M[AGENTS.md<br/>CLAUDE.md]
+        C[.claude/commands/<br/>slash commands]
+        GP[.github/prompts/<br/>copilot prompts]
+    end
+
+    subgraph "AI Agents"
+        A1[Claude Code]
+        A2[GitHub Copilot]
+        A3[Future Agents]
+    end
+
+    S1 --> D
+    S2 --> D
+    D --> G
+    G --> M
+    G --> C
+    G --> GP
+    M --> A1
+    M --> A2
+    M --> A3
+    C --> A1
+    GP --> A2
+
+    style S1 fill:#e3f2fd
+    style S2 fill:#e3f2fd
+    style D fill:#fff3e0
+    style G fill:#fff3e0
+    style M fill:#f3e5f5
+    style C fill:#f3e5f5
+    style GP fill:#f3e5f5
+    style A1 fill:#c8e6c9
+    style A2 fill:#c8e6c9
+    style A3 fill:#c8e6c9
 ```
 
 ## Quick Start
 
 ### For Project Developers
 
-1. Initialize DNASpec in your project:
+Integrate DNA guidelines into your project:
+
 ```bash
+# 1. Initialize DNASpec configuration
 dnaspec init
-```
 
-2. Add DNA guidelines from a repository:
-```bash
+# 2. Add guidelines from a repository
 dnaspec add --git-repo https://github.com/company/dna-guidelines
-```
 
-3. Configure AI agents to use your guidelines:
-```bash
+# 3. Select guidelines interactively (or use --all flag)
+# Example: select go-style, rest-api guidelines
+
+# 4. Generate AI agent configuration
 dnaspec update-agents
+
+# 5. Start using slash commands in Claude Code
+# Type: /dnaspec-company-go-code-review
 ```
 
-4. Or add from a local directory:
-```bash
-dnaspec add /path/to/local/dna-guidelines
-```
+See the [Project Developer Guide](docs/project-guide.md) for complete documentation.
 
 ### For DNA Repository Maintainers
 
-1. Initialize a new manifest:
+Create and publish DNA guidelines:
+
 ```bash
+# 1. Initialize manifest
 dnaspec manifest init
-```
 
-2. Edit `dnaspec-manifest.yaml` to add your guidelines and prompts
+# 2. Edit dnaspec-manifest.yaml to define guidelines and prompts
+# Add guidelines with applicable_scenarios
+# Add prompts that reference guidelines
 
-3. Create the referenced files in `guidelines/` and `prompts/` directories
+# 3. Create guideline and prompt files
+mkdir -p guidelines prompts
+# Write your guidelines in guidelines/
+# Write your prompts in prompts/
 
-4. Validate your manifest:
-```bash
+# 4. Validate manifest
 dnaspec manifest validate
+
+# 5. Publish to git
+git add .
+git commit -m "Initial DNA guidelines"
+git tag v1.0.0
+git push --tags
 ```
 
-## Commands
+See the [Manifest Guide](docs/manifest-guide.md) for complete documentation.
 
-### Project Commands
+## Documentation
 
-Project commands help you integrate DNA guidelines into your projects.
+- **[Project Developer Guide](docs/project-guide.md)** - Complete guide for integrating DNA guidelines into projects
+  - Installation and setup
+  - All project commands (init, add, remove, update, update-agents, etc.)
+  - Configuration reference
+  - AI agent integration
+  - Troubleshooting
 
-#### `dnaspec init`
+- **[Manifest Guide](docs/manifest-guide.md)** - Complete guide for creating DNA repositories
+  - Creating guidelines and prompts
+  - Manifest commands (manifest init, manifest validate)
+  - Best practices for guidelines and prompts
+  - Publishing DNA repositories
+  - Examples
 
-Initialize a new `dnaspec.yaml` file in your project.
+- **[Design Document](docs/design.md)** - Technical architecture and implementation details
+  - Core concepts and architecture
+  - Technical specifications
+  - Security considerations
+  - Implementation details
+
+## Installation
+
+### Download Pre-built Binary (Recommended)
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/aviator5/dnaspec/releases):
 
 ```bash
-dnaspec init
+# macOS (ARM)
+curl -L https://github.com/aviator5/dnaspec/releases/latest/download/dnaspec_darwin_arm64.tar.gz | tar xz
+sudo mv dnaspec /usr/local/bin/
+
+# macOS (Intel)
+curl -L https://github.com/aviator5/dnaspec/releases/latest/download/dnaspec_darwin_amd64.tar.gz | tar xz
+sudo mv dnaspec /usr/local/bin/
+
+# Linux (x86_64)
+curl -L https://github.com/aviator5/dnaspec/releases/latest/download/dnaspec_linux_amd64.tar.gz | tar xz
+sudo mv dnaspec /usr/local/bin/
+
+# Windows (x86_64)
+# Download from: https://github.com/aviator5/dnaspec/releases/latest
 ```
 
-This command:
-- Creates a new `dnaspec.yaml` configuration file in the current directory
-- Includes commented examples showing how to add DNA sources
-- Prevents overwriting an existing configuration file
+### Install via Go
 
-**Example output:**
-```
-✓ Success: Created dnaspec.yaml
-
-Next steps:
-  1. Run dnaspec add to add DNA guidelines from a repository or local directory
-  2. Run dnaspec update-agents to generate agent configuration files
-```
-
-#### `dnaspec add`
-
-Add DNA guidelines from a git repository or local directory to your project.
-
-**Add from git repository:**
-```bash
-# Add from default branch/tag
-dnaspec add --git-repo https://github.com/company/dna-guidelines
-
-# Add from specific branch or tag
-dnaspec add --git-repo https://github.com/company/dna-guidelines --git-ref v1.2.0
-
-# Add with custom source name
-dnaspec add --git-repo https://github.com/company/dna-guidelines --name my-dna
-```
-
-**Add from local directory:**
-```bash
-# Add from local path
-dnaspec add /path/to/local/dna-guidelines
-
-# Add with custom source name
-dnaspec add /path/to/local/dna-guidelines --name my-local-dna
-```
-
-**Selection options:**
-```bash
-# Interactive selection (default)
-dnaspec add --git-repo https://github.com/company/dna-guidelines
-
-# Add all guidelines without prompting
-dnaspec add --git-repo https://github.com/company/dna-guidelines --all
-
-# Add specific guidelines
-dnaspec add --git-repo https://github.com/company/dna-guidelines --guideline go-style --guideline rest-api
-
-# Preview changes without modifying files
-dnaspec add --git-repo https://github.com/company/dna-guidelines --dry-run
-```
-
-This command:
-- Clones the git repository (for git sources) or reads the local directory
-- Parses the `dnaspec-manifest.yaml` file from the source
-- Shows an interactive guideline selection (unless `--all` or `--guideline` flags are used)
-- Copies selected guideline and prompt files to `dnaspec/<source-name>/` directory
-- Updates `dnaspec.yaml` with source metadata and selected guidelines
-
-**Flags:**
-- `--git-repo <url>`: Git repository URL (https:// or git@)
-- `--git-ref <ref>`: Git branch or tag to use (defaults to repository's default branch)
-- `--name <name>`: Custom source name (defaults to derived name from URL/path)
-- `--all`: Add all guidelines without interactive selection
-- `--guideline <name>`: Add specific guideline by name (can be repeated)
-- `--dry-run`: Preview changes without modifying files
-
-**Example output:**
-```
-→ Cloning repository https://github.com/company/dna-guidelines...
-✓ Repository cloned successfully
-
-Select guidelines to add:
-  [x] go-style - Go coding style conventions
-  [x] rest-api - REST API design principles
-  [ ] database-design - Database schema design guidelines
-
-→ Copying 2 guidelines and 3 prompts to dnaspec/dna-guidelines/...
-✓ Files copied successfully
-✓ Updated dnaspec.yaml
-
-Added source: dna-guidelines
-  Guidelines: go-style, rest-api
-  Prompts: code-review, documentation, api-review
-
-Next steps:
-  1. Review the added guidelines in dnaspec/dna-guidelines/
-  2. Run dnaspec update-agents to generate agent configuration files
-```
-
-#### `dnaspec remove`
-
-Remove a DNA source from your project configuration. This command safely removes the source from `dnaspec.yaml`, deletes the source directory and all guideline files, and cleans up generated agent files (Claude commands and Copilot prompts).
-
-**Basic usage:**
-```bash
-# Remove a source with confirmation prompt
-dnaspec remove company-dna
-
-# Remove a source without confirmation
-dnaspec remove company-dna --force
-```
-
-This command:
-- Shows what will be deleted (config entry, source directory, generated agent files)
-- Prompts for confirmation before deletion (unless `--force` is used)
-- Removes the source entry from `dnaspec.yaml`
-- Deletes the `dnaspec/<source-name>/` directory
-- Cleans up generated Claude command files (`.claude/commands/dnaspec/<source-name>-*.md`)
-- Cleans up generated Copilot prompt files (`.github/prompts/dnaspec-<source-name>-*.prompt.md`)
-- Handles missing files gracefully (idempotent operation)
-
-**Flags:**
-- `--force`, `-f`: Skip confirmation prompt
-
-**Example output:**
-```
-The following will be deleted:
-  - dnaspec.yaml entry for 'company-dna'
-  - dnaspec/company-dna/ directory (5 guidelines, 3 prompts)
-  - .claude/commands/dnaspec/company-dna-*.md (3 files)
-  - .github/prompts/dnaspec-company-dna-*.prompt.md (2 files)
-
-This cannot be undone. Continue? [y/N]: y
-
-✓ Success: Removed source company-dna
-  Cleaned up 5 file(s)
-
-Next steps:
-  Run dnaspec update-agents to regenerate AGENTS.md
-```
-
-**Error handling:**
-- If the source doesn't exist, shows available sources
-- If config file is missing, suggests running `dnaspec init`
-- If file deletion fails, provides clear error messages
-
-#### `dnaspec list`
-
-View the current DNA configuration for your project, showing all configured agents, sources, guidelines, and prompts.
+If you have Go installed:
 
 ```bash
-dnaspec list
+go install github.com/aviator5/dnaspec/cmd/dnaspec@latest
 ```
 
-This command:
-- Loads and displays the `dnaspec.yaml` configuration file
-- Shows configured AI agents (Phase 1: Claude Code, GitHub Copilot)
-- Lists all DNA sources with their type-specific metadata
-- Displays guidelines and prompts for each source
-- Provides a quick overview of your project's DNA setup
+## Configuration Overview
 
-**Example output:**
-```
-Configured Agents (Phase 1):
-  - claude-code
-  - github-copilot
+### Project Configuration (dnaspec.yaml)
 
-Sources:
-
-company-dna (git-repo)
-  URL: https://github.com/company/dna-guidelines
-  Ref: v1.2.0
-  Commit: abc123def456789...
-  Guidelines:
-    - go-style: Go coding style conventions
-    - rest-api: REST API design principles
-  Prompts:
-    - code-review: Review Go code for style compliance
-    - api-review: Review API designs
-
-local-patterns (local-dir)
-  Path: /Users/me/my-dna-patterns
-  Guidelines:
-    - error-handling: Error handling patterns
-```
-
-**When no configuration exists:**
-```
-✗ Error: dnaspec.yaml not found
-
-Run 'dnaspec init' to create a new configuration file.
-```
-
-**Use cases:**
-- Verify which DNA sources are currently active
-- Check which guidelines are available before running code reviews
-- Confirm agent configuration before running `dnaspec update-agents`
-- Debug configuration issues
-
-#### `dnaspec update`
-
-Update DNA sources from their origins (git repositories or local directories) to fetch the latest guidelines and prompts.
-
-**Update specific source:**
-```bash
-# Update a single source
-dnaspec update my-company-dna
-
-# Preview changes without writing files
-dnaspec update my-company-dna --dry-run
-
-# Add all new guidelines automatically
-dnaspec update my-company-dna --add-new=all
-
-# Skip new guidelines
-dnaspec update my-company-dna --add-new=none
-```
-
-**Update all sources:**
-```bash
-# Update all sources at once
-dnaspec update --all
-
-# Update all with automatic new guideline handling
-dnaspec update --all --add-new=all
-```
-
-This command:
-- Fetches the latest manifest from the source (git clone or local directory read)
-- Compares current configuration with latest manifest
-- Updates metadata for existing guidelines (description, scenarios, prompts)
-- Copies updated guideline and prompt files to `dnaspec/<source-name>/` directory
-- Optionally adds new guidelines (interactive by default)
-- Reports guidelines removed from source (but keeps local files)
-- Updates `dnaspec.yaml` with new commit hashes (git sources) and metadata
-
-**Flags:**
-- `--all`: Update all configured sources
-- `--dry-run`: Preview changes without modifying files
-- `--add-new <policy>`: Policy for new guidelines (`all` or `none`). If not specified, prompts interactively.
-
-**Example output:**
-```
-⏳ Fetching latest from https://github.com/company/dna...
-✓ Current commit: abc123de
-✓ Latest commit: def456ab (changed)
-
-Updated guidelines:
-  ✓ go-style (description changed)
-  ✓ rest-api (content updated)
-
-New guidelines available:
-  - go-testing: Go testing patterns
-  - go-errors: Error handling conventions
-
-Removed from source:
-  - old-guideline (no longer in manifest)
-
-Add new guidelines? [y/N]: y
-
-✓ Added go-testing
-✓ Added go-errors
-
-✓ Updated dnaspec.yaml
-
-Run 'dnaspec update-agents' to regenerate agent files
-```
-
-**When sources are up to date:**
-```
-⏳ Fetching latest from https://github.com/company/dna...
-✓ Current commit: abc123de
-✓ Already at latest commit
-
-All guidelines up to date.
-```
-
-#### `dnaspec update-agents`
-
-Generate or update AI agent configuration files based on selected DNA guidelines.
-
-```bash
-# Interactive mode - select which agents to configure
-dnaspec update-agents
-
-# Non-interactive mode - use saved agent configuration
-dnaspec update-agents --no-ask
-```
-
-This command:
-- Shows an interactive checklist of available AI agents (Claude Code, GitHub Copilot)
-- Saves your agent selection to `dnaspec.yaml`
-- Generates agent-specific integration files based on your DNA guidelines
-- Updates managed blocks while preserving custom content outside those blocks
-
-**Generated Files:**
-
-**AGENTS.md** (always):
-- Contains references to all guidelines with their applicable scenarios
-- Format: `@/dnaspec/<source-name>/<file>` with scenario bullet points
-- Uses managed blocks (`<!-- DNASPEC:START/END -->`) that can be safely regenerated
-
-**CLAUDE.md** (if Claude Code selected):
-- Same content as AGENTS.md
-- Enables Claude Code to discover project-specific instructions
-
-**Claude Commands** (if Claude Code selected):
-- `.claude/commands/dnaspec/<source-name>-<prompt-name>.md`
-- Slash commands for guideline-based code reviews and tasks
-- Includes frontmatter with name, description, category, and tags
-
-**Copilot Prompts** (if GitHub Copilot selected):
-- `.github/prompts/dnaspec-<source-name>-<prompt-name>.prompt.md`
-- Prompts for guideline-based assistance
-- Includes `$ARGUMENTS` placeholder for context
-
-**Flags:**
-- `--no-ask`: Use saved agent configuration without prompting (useful for CI/CD)
-
-**Example output:**
-```
-Select AI agents to configure:
-  [x] Claude Code
-  [x] GitHub Copilot
-
-→ Generating agent configuration files...
-✓ Created AGENTS.md
-✓ Created CLAUDE.md
-✓ Created .claude/commands/dnaspec/dna-guidelines-code-review.md
-✓ Created .claude/commands/dnaspec/dna-guidelines-documentation.md
-✓ Created .github/prompts/dnaspec-dna-guidelines-code-review.prompt.md
-✓ Created .github/prompts/dnaspec-dna-guidelines-documentation.prompt.md
-
-Agent configuration updated successfully!
-
-Your AI assistants can now access your DNA guidelines:
-  • Claude Code: Type / and search for "dnaspec" commands
-  • GitHub Copilot: Use GitHub Copilot Chat with dnaspec prompts
-```
-
-**When to run:**
-- After adding new DNA sources with `dnaspec add`
-- After changing which agents you want to use
-- After updating guidelines in your DNA sources (with `--no-ask` flag)
-
-**Managed Blocks:**
-
-The command uses managed block markers to safely update generated content:
-
-```markdown
-<!-- DNASPEC:START -->
-Generated content here
-<!-- DNASPEC:END -->
-```
-
-Content outside these markers is preserved, so you can add custom instructions alongside generated guidelines.
-
-#### `dnaspec validate`
-
-Validate the project configuration (`dnaspec.yaml`) without modifying any files.
-
-```bash
-dnaspec validate
-```
-
-This command checks:
-- **YAML syntax and schema structure**: Ensures the configuration file is valid
-- **Config version**: Verifies version is supported (currently version 1)
-- **Source fields**: Checks all sources have required fields based on type
-- **File references**: Verifies all guideline and prompt files exist in `dnaspec/` directory
-- **Agent IDs**: Validates agent IDs are recognized (claude-code, github-copilot)
-- **Duplicate names**: Checks for duplicate source names
-- **Comprehensive error reporting**: Collects and displays all errors before exiting
-
-**Example output (success):**
-```
-Validating dnaspec.yaml...
-✓ YAML syntax valid
-✓ Version 1 schema valid
-✓ 2 sources configured
-✓ All referenced files exist:
-  - dnaspec/company-dna/guidelines/go-style.md
-  - dnaspec/company-dna/guidelines/rest-api.md
-  - dnaspec/company-dna/prompts/code-review.md
-✓ All agent IDs recognized: claude-code, github-copilot
-✓ Configuration is valid
-```
-
-**Example output (errors):**
-```
-Validating dnaspec.yaml...
-✓ YAML syntax valid
-✗ Found 3 validation error(s):
-
-  • Source 'company-dna' (git-repo) missing required field: url
-  • File not found: dnaspec/company-dna/guidelines/missing.md
-  • Unknown agent ID: 'invalid-agent' (recognized: claude-code, github-copilot)
-
-Validation failed with 3 error(s)
-```
-
-**Use cases:**
-- Verify configuration before running other commands
-- Debug configuration issues
-- Check in CI/CD pipelines to catch errors early
-- Ensure all referenced files exist after cloning a repository
-
-#### `dnaspec sync`
-
-Update all DNA sources and regenerate agent files in a single non-interactive operation.
-
-```bash
-# Sync all sources and regenerate agent files
-dnaspec sync
-
-# Preview changes without writing files
-dnaspec sync --dry-run
-```
-
-This command is a convenience wrapper that:
-1. Updates all sources from their origins (equivalent to `dnaspec update --all --add-new=none`)
-2. Regenerates all agent files (equivalent to `dnaspec update-agents --no-ask`)
-3. Displays consolidated summary of all changes
-
-**Non-interactive design:**
-- Safe for CI/CD pipelines - never prompts for user input
-- Uses saved agent configuration from `dnaspec.yaml`
-- Does NOT add new guidelines automatically (uses `--add-new=none` policy)
-- Exits early if any source update fails
-
-**Flags:**
-- `--dry-run`: Preview changes without modifying files
-
-**Example output:**
-```
-Syncing all DNA sources...
-
-Updating 2 sources...
-
-=== Updating company-dna ===
-⏳ Refreshing from https://github.com/company/dna...
-✓ Updated 1 guideline
-✓ No new guidelines available
-
-=== Updating local-patterns ===
-⏳ Refreshing from local directory...
-✓ No changes (already up to date)
-
-✓ All sources updated
-
-Regenerating agent files...
-Using saved agents: [claude-code, github-copilot]
-✓ AGENTS.md
-✓ CLAUDE.md
-✓ Generated 2 Claude command(s)
-✓ Generated 2 Copilot prompt(s)
-
-✓ Sync complete
-```
-
-**When to use:**
-- In CI/CD pipelines to keep DNA guidelines up to date
-- Before starting work to ensure you have latest guidelines
-- After pulling repository changes that might affect DNA sources
-- When you want to update everything with a single command
-
-**Comparison with individual commands:**
-
-| Command | Interactive | Adds New Guidelines | Use Case |
-|---------|------------|---------------------|----------|
-| `dnaspec update --all` | Yes (prompts for new guidelines) | Optional | Manual updates with decisions |
-| `dnaspec sync` | No | Never | CI/CD, automated workflows |
-
-### Manifest Commands
-
-Manifest commands help DNA repository maintainers create and validate manifests.
-
-#### `dnaspec manifest init`
-
-Initialize a new `dnaspec-manifest.yaml` file with example structure.
-
-```bash
-dnaspec manifest init
-```
-
-This command:
-- Creates a new manifest file in the current directory
-- Includes example guidelines and prompts with helpful comments
-- Prevents overwriting an existing manifest file
-
-**Example output:**
-```
-✓ Success: Created dnaspec-manifest.yaml
-
-Next steps:
-  1. Edit the manifest file to add your guidelines and prompts
-  2. Create the referenced files in guidelines/ and prompts/ directories
-  3. Run dnaspec manifest validate to check your manifest
-```
-
-### `dnaspec manifest validate`
-
-Validate the `dnaspec-manifest.yaml` file in the current directory.
-
-```bash
-dnaspec manifest validate
-```
-
-This command checks:
-- **Manifest structure**: Validates required fields (version, guidelines, prompts)
-- **Guideline definitions**: Ensures all guidelines have name, file, description, and applicable_scenarios
-- **Prompt definitions**: Ensures all prompts have name, file, and description
-- **File references**: Verifies that all referenced files exist
-- **Cross-references**: Checks that prompts referenced by guidelines are defined
-- **Naming conventions**: Enforces spinal-case (lowercase with hyphens)
-- **Path security**: Prevents absolute paths and path traversal attacks
-- **Applicable scenarios**: Ensures guidelines have at least one applicable scenario (required for AGENTS.md generation)
-
-**Example output (success):**
-```
-✓ Manifest is valid
-```
-
-**Example output (with errors):**
-```
-✗ Found 3 validation error(s):
-
-  • guidelines[0].name: invalid naming format: 'MyGuideline' (expected spinal-case: lowercase letters and hyphens only)
-  • guidelines[0].file: file not found: guidelines/missing.md
-  • guidelines[1].prompts: guideline 'api-design' references non-existent prompt 'review'
-
-Fix these errors and run dnaspec manifest validate again.
-```
-
-## Project Configuration Format
-
-The `dnaspec.yaml` file in your project directory tracks which DNA sources you've added and which guidelines are active.
+Projects use `dnaspec.yaml` to track which DNA sources and guidelines are active:
 
 ```yaml
 version: 1
@@ -607,83 +293,23 @@ sources:
     type: "git-repo"
     url: "https://github.com/company/dna-guidelines"
     ref: "v1.2.0"
-    commit: "abc123def456789..."
     guidelines:
       - name: "go-style"
         file: "guidelines/go-style.md"
-        description: "Go code style conventions"
+        description: "Go coding conventions"
         applicable_scenarios:
           - "writing new Go code"
-        prompts: ["code-review"]
+          - "refactoring Go code"
+        prompts: ["go-code-review"]
     prompts:
-      - name: "code-review"
-        file: "prompts/code-review.md"
-        description: "Review Go code"
-        
-  - name: "local-patterns"
-    type: "local"
-    path: "/Users/me/my-dna-patterns"
-    guidelines:
-      - name: "error-handling"
-        file: "guidelines/error-handling.md"
-        description: "Error handling patterns"
-        applicable_scenarios:
-          - "handling errors"
-    prompts: []
+      - name: "go-code-review"
+        file: "prompts/go-code-review.md"
+        description: "Review Go code for style"
 ```
 
-### Configuration Fields
+### Manifest Configuration (dnaspec-manifest.yaml)
 
-**Top-level:**
-- `version`: Must be `1`
-- `agents`: List of AI agents to generate configuration for (values: `"claude-code"`, `"github-copilot"`)
-- `sources`: List of DNA sources added to this project
-
-**Source (git-repo type):**
-- `name`: Unique source identifier (derived from URL or custom via `--name`)
-- `type`: Must be `"git-repo"`
-- `url`: Git repository URL
-- `ref`: Git branch or tag used (optional)
-- `commit`: Git commit hash for tracking updates
-- `guidelines`: List of selected guidelines from this source
-- `prompts`: List of prompts referenced by selected guidelines
-
-**Source (local type):**
-- `name`: Unique source identifier (derived from path or custom via `--name`)
-- `type`: Must be `"local"`
-- `path`: Absolute path to local directory
-- `guidelines`: List of selected guidelines from this source
-- `prompts`: List of prompts referenced by selected guidelines
-
-**Guideline:**
-- `name`: Guideline identifier
-- `file`: Relative path to guideline file (from source root)
-- `description`: Brief description
-- `applicable_scenarios`: List of scenarios where guideline applies
-- `prompts`: List of prompt names referenced by this guideline
-
-**Prompt:**
-- `name`: Prompt identifier
-- `file`: Relative path to prompt file (from source root)
-- `description`: Brief description
-
-### Source Name Derivation
-
-When you don't specify `--name`, DNASpec automatically derives a source name:
-
-**From git URL:**
-- `https://github.com/company/dna-guidelines.git` → `dna-guidelines`
-- `git@github.com:company/my-patterns.git` → `my-patterns`
-
-**From local path:**
-- `/Users/me/my-dna-patterns` → `my-dna-patterns`
-- `/path/to/Company_DNA` → `company-dna`
-
-Names are sanitized to lowercase with hyphens, removing special characters.
-
-## Manifest File Format
-
-The `dnaspec-manifest.yaml` file defines your project's guidelines and prompts:
+DNA repositories use `dnaspec-manifest.yaml` to define available guidelines and prompts:
 
 ```yaml
 version: 1
@@ -691,302 +317,28 @@ version: 1
 guidelines:
   - name: go-style
     file: guidelines/go-style.md
-    description: Go coding style guidelines
+    description: Go coding style conventions
     applicable_scenarios:
-      - Writing Go code
-      - Code reviews
+      - "writing new Go code"
+      - "refactoring existing Go code"
     prompts:
-      - code-review
-      - documentation
-
-  - name: rest-api
-    file: guidelines/rest-api.md
-    description: REST API design principles
-    applicable_scenarios:
-      - Designing APIs
-      - API documentation
+      - go-code-review
 
 prompts:
-  - name: code-review
-    file: prompts/code-review.md
-    description: Code review checklist
-
-  - name: documentation
-    file: prompts/documentation.md
-    description: Documentation standards
+  - name: go-code-review
+    file: prompts/go-code-review.md
+    description: Review Go code against go-style guideline
 ```
 
-### Required Fields
-
-**Manifest:**
-- `version`: Must be `1`
-
-**Guideline:**
-- `name`: Unique identifier in spinal-case (e.g., `go-style`)
-- `file`: Relative path starting with `guidelines/`
-- `description`: Brief description of the guideline
-- `applicable_scenarios`: List of scenarios where this guideline applies (at least one required)
-
-**Prompt (optional):**
-- `prompts`: List of prompt names that complement this guideline
-
-**Prompt:**
-- `name`: Unique identifier in spinal-case (e.g., `code-review`)
-- `file`: Relative path starting with `prompts/`
-- `description`: Brief description of the prompt
-
-### Naming Conventions
-
-Names must follow **spinal-case**:
-- ✓ Valid: `go-style`, `rest-api`, `code-review-123`
-- ✗ Invalid: `GoStyle` (camelCase), `go_style` (snake_case), `Go-Style` (uppercase)
-
-### File Paths
-
-File paths must:
-- Be relative (not absolute)
-- Start with `guidelines/` or `prompts/`
-- Not contain path traversal (`..`)
-
-Examples:
-- ✓ Valid: `guidelines/go-style.md`, `prompts/review.md`
-- ✗ Invalid: `/etc/passwd`, `../other/file.md`, `guidelines/../../etc/passwd`
-
-## Validation Rules
-
-### Structure Validation
-- Version must be specified and equal to 1
-- Guidelines and prompts arrays must be present (can be empty)
-
-### Guideline Validation
-- All required fields must be present
-- Names must be unique across all guidelines
-- Names must use spinal-case format
-- File paths must follow security rules
-- Referenced files must exist
-- Must have at least one applicable scenario
-
-### Prompt Validation
-- All required fields must be present
-- Names must be unique across all prompts
-- Names must use spinal-case format
-- File paths must follow security rules
-- Referenced files must exist
-
-### Cross-Reference Validation
-- Any prompt referenced in a guideline's `prompts` field must be defined in the `prompts` section
-
-## Troubleshooting
-
-### Project Commands
-
-#### "dnaspec.yaml already exists"
-
-**Problem:** You ran `dnaspec init` but a configuration file already exists.
-
-**Solution:**
-- If you want to keep the existing file, use `dnaspec add` to add more sources
-- If you want to start fresh, rename or delete the existing file first:
-  ```bash
-  mv dnaspec.yaml dnaspec.yaml.bak
-  dnaspec init
-  ```
-
-#### "source with name 'X' already exists"
-
-**Problem:** You're trying to add a source with a name that's already in your configuration.
-
-**Solution:** Use the `--name` flag to specify a different name:
-```bash
-dnaspec add --git-repo https://github.com/company/dna --name company-dna-v2
-```
-
-#### "git clone failed"
-
-**Problem:** Unable to clone the git repository.
-
-**Solutions:**
-- **Network issues**: Check your internet connection
-- **Authentication**: For private repositories, ensure you have SSH keys set up or use HTTPS with credentials
-- **Invalid URL**: Verify the repository URL is correct
-- **Timeout**: Large repositories may timeout; try using `--git-ref` to specify a tag/branch
-
-#### "dnaspec-manifest.yaml not found"
-
-**Problem:** The source directory doesn't contain a valid DNASpec manifest.
-
-**Solution:**
-- Verify you're pointing to the correct repository/directory
-- Check that the repository is actually a DNA guidelines repository
-- If you're a maintainer, run `dnaspec manifest init` in that directory first
-
-#### "guideline 'X' not found in source"
-
-**Problem:** You specified a guideline with `--guideline` that doesn't exist in the source.
-
-**Solution:**
-- Remove the `--guideline` flag to see all available guidelines interactively
-- Check the source's manifest for correct guideline names
-- Fix any typos in the guideline name
-
-#### "failed to copy file"
-
-**Problem:** Unable to copy files to your project directory.
-
-**Solutions:**
-- **Permission denied**: Check that you have write permissions in the current directory
-- **Disk full**: Ensure you have sufficient disk space
-- **Path too long**: On Windows, file paths might exceed maximum length
-
-#### "git clone timed out"
-
-**Problem:** The repository clone operation took longer than 5 minutes.
-
-**Solutions:**
-- Check your network connection
-- Try cloning the repository manually first to diagnose issues
-- For very large repositories, consider using a local directory instead:
-  ```bash
-  git clone https://github.com/company/dna /tmp/dna
-  dnaspec add /tmp/dna
-  ```
-
-#### "no sources configured"
-
-**Problem:** You ran `dnaspec update-agents` but haven't added any DNA sources yet.
-
-**Solution:** Add at least one DNA source first:
-```bash
-dnaspec add --git-repo https://github.com/company/dna-guidelines
-```
-
-#### "failed to create directory"
-
-**Problem:** Unable to create agent configuration directories (`.claude/commands/`, `.github/prompts/`).
-
-**Solutions:**
-- **Permission denied**: Check that you have write permissions in the current directory
-- **Path conflicts**: Ensure no files exist with the same names as the directories
-- **Disk full**: Ensure you have sufficient disk space
-
-#### "managed block corrupted"
-
-**Problem:** The managed block markers in AGENTS.md or CLAUDE.md are incomplete or malformed.
-
-**Solution:**
-- Manually fix the markers to ensure they appear in pairs:
-  ```markdown
-  <!-- DNASPEC:START -->
-  ...content...
-  <!-- DNASPEC:END -->
-  ```
-- Or delete the file and run `dnaspec update-agents` again to regenerate it
-
-### Manifest Commands
-
-#### "Manifest file already exists"
-
-**Problem:** You ran `dnaspec manifest init` but a manifest file already exists.
-
-**Solution:**
-- If you want to keep the existing file, edit it directly instead of running `init`
-- If you want to start fresh, rename or delete the existing file first:
-  ```bash
-  mv dnaspec-manifest.yaml dnaspec-manifest.yaml.bak
-  dnaspec manifest init
-  ```
-
-### "file not found: guidelines/..."
-
-**Problem:** Your manifest references a file that doesn't exist.
-
-**Solution:** Create the missing file:
-```bash
-mkdir -p guidelines
-touch guidelines/your-guideline.md
-```
-
-Or update the manifest to reference an existing file.
-
-### "invalid naming format"
-
-**Problem:** A guideline or prompt name doesn't follow spinal-case conventions.
-
-**Solution:** Rename to use only lowercase letters, numbers, and hyphens:
-- Change `MyGuideline` to `my-guideline`
-- Change `API_Design` to `api-design`
-- Change `codeReview` to `code-review`
-
-### "path traversal not allowed"
-
-**Problem:** A file path contains `..` which could reference files outside the intended directories.
-
-**Solution:** Use relative paths within `guidelines/` or `prompts/`:
-- Change `../../etc/passwd` to a proper path like `guidelines/security.md`
-- Remove any `..` path components
-
-### "references non-existent prompt"
-
-**Problem:** A guideline references a prompt that isn't defined in the `prompts` section.
-
-**Solution:** Either:
-- Add the missing prompt to the `prompts` section
-- Remove the prompt reference from the guideline
-- Fix the prompt name if it's a typo
-
-### "empty applicable_scenarios"
-
-**Problem:** A guideline has an empty `applicable_scenarios` list.
-
-**Solution:** Add at least one scenario where this guideline applies:
-```yaml
-guidelines:
-  - name: my-guideline
-    file: guidelines/my-guideline.md
-    description: My guideline
-    applicable_scenarios:
-      - "When writing new features"
-      - "During code reviews"
-```
-
-The `applicable_scenarios` field is required because it's used to generate AGENTS.md files that help AI assistants understand when to apply your guidelines.
-
-## Examples
-
-See the `examples/` directory for complete example manifests:
-
-- `examples/minimal-manifest.yaml`: Minimal valid manifest with one guideline
-- `examples/complete-manifest.yaml`: Full-featured manifest with multiple guidelines and prompts
-- `examples/go-project-manifest.yaml`: Example for a Go project
-
-## Development
-
-### Running Tests
-
-```bash
-# Run all tests
-go test ./...
-
-# Run tests with coverage
-go test -cover ./...
-
-# Run specific test package
-go test ./internal/core/validate/...
-```
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/aviator5/dnaspec.git
-cd dnaspec
-
-# Build
-go build -o dnaspec ./cmd/dnaspec
-
-# Install
-go install ./cmd/dnaspec
-```
+**Key concepts:**
+- **Guidelines** specify `applicable_scenarios` to tell AI agents when to use them
+- **Prompts** reference guidelines they help enforce
+- Files are organized in `guidelines/` and `prompts/` directories
+- Names use spinal-case (lowercase with hyphens)
+
+## Acknowledgments
+
+DNASpec was inspired by [OpenSpec](https://github.com/Fission-AI/OpenSpec) and developed using the OpenSpec methodology for managing architectural changes.
 
 ## License
 
