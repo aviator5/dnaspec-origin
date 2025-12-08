@@ -1,0 +1,28 @@
+version: 1
+
+guidelines:
+  - name: test-guideline
+    file: guidelines/test-guideline.md
+    description: Updated test guideline description
+    applicable_scenarios:
+      - "Testing integration"
+      - "New scenario"
+    prompts:
+      - test-prompt
+
+  - name: another-guideline
+    file: guidelines/another-guideline.md
+    description: Another test guideline
+    applicable_scenarios:
+      - "Testing multiple guidelines"
+
+  - name: new-guideline
+    file: guidelines/new-guideline.md
+    description: Brand new guideline
+    applicable_scenarios:
+      - "Testing new guidelines"
+
+prompts:
+  - name: test-prompt
+    file: prompts/test-prompt.md
+    description: Test prompt for integration tests

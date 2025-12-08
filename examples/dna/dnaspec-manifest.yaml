@@ -1,0 +1,35 @@
+# DNASpec Manifest
+# This file defines the guidelines and prompts available in this DNA repository.
+
+version: 1
+
+guidelines:
+  # Example guideline entry
+  - name: go-style
+    file: guidelines/go-style.md
+    description: Go language style conventions and best practices
+    applicable_scenarios:
+      - "Writing new Go code"
+      - "Refactoring Go code"
+      - "Reviewing Go code"
+    prompts:
+      - code-review
+
+  # Add more guidelines here
+  # - name: rest-api
+  #   file: guidelines/rest-api.md
+  #   description: RESTful API design guidelines
+  #   applicable_scenarios:
+  #     - "Designing REST APIs"
+  #     - "Implementing API endpoints"
+
+prompts:
+  # Example prompt entry
+  - name: code-review
+    file: prompts/go-style-code-review.md
+    description: Review Go code against go-style DNA guidelines
+
+  # Add more prompts here
+  # - name: debugging
+  #   file: prompts/debugging.md
+  #   description: Prompt for systematic debugging
