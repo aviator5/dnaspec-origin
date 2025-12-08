@@ -51,3 +51,40 @@ prompts:
 func CreateExampleManifest(path string) error {
 	return os.WriteFile(path, []byte(ExampleManifestYAML), 0644)
 }
+
+// ExampleProjectYAML returns an example project config YAML content with helpful comments
+const ExampleProjectYAML = `# DNASpec Project Configuration
+# This file configures which DNA guidelines are active in your project.
+
+version: 1
+
+# AI agents that should use these guidelines
+# agents:
+#   - "claude-code"
+#   - "github-copilot"
+
+# DNA sources - guidelines from repositories or local directories
+# sources:
+#   - name: company-dna
+#     type: git-repo
+#     url: https://github.com/company/dna
+#     ref: v1.2.0
+#     commit: abc123def456789...
+#     guidelines:
+#       - name: go-style
+#         file: guidelines/go-style.md
+#         description: Go code style conventions
+#         applicable_scenarios:
+#           - "writing new Go code"
+#         prompts:
+#           - code-review
+#     prompts:
+#       - name: code-review
+#         file: prompts/code-review.md
+#         description: Review Go code
+`
+
+// CreateExampleProjectConfig creates an example project config file at the given path
+func CreateExampleProjectConfig(path string) error {
+	return os.WriteFile(path, []byte(ExampleProjectYAML), 0644)
+}
