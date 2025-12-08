@@ -33,7 +33,7 @@
 - [x] 4.2 Implement FetchLocalSource function (validate path exists, parse manifest)
 - [x] 4.3 Add manifest validation after fetching using existing manifest-management validation
 - [x] 4.4 Add path security validation for all file references
-- [ ] 4.5 Write unit tests for both git and local source fetching
+- [x] 4.5 Write unit tests for both git and local source fetching
 - [ ] 4.6 Write integration tests with sample repositories and directories
 
 ## 5. Add Command Structure
@@ -52,7 +52,7 @@
 - [x] 6.4 Implement --all flag handler (select all guidelines)
 - [x] 6.5 Implement --guideline flag handler (select specific by name, validate names exist)
 - [x] 6.6 Handle user cancellation gracefully
-- [ ] 6.7 Write tests for selection logic
+- [x] 6.7 Write tests for selection logic
 
 ## 7. File Operations
 
@@ -62,7 +62,7 @@
 - [x] 7.4 Implement atomic config writes in internal/core/config/atomic.go (temp file + rename)
 - [x] 7.5 Add error handling for disk space and permissions
 - [ ] 7.6 Implement rollback on partial copy failures
-- [ ] 7.7 Write unit tests for file copying and atomic writes
+- [x] 7.7 Write unit tests for file copying and atomic writes
 
 ## 8. Configuration Management
 
@@ -72,7 +72,7 @@
 - [x] 8.4 Build source entry with metadata (type, url/path, ref, commit, guidelines, prompts)
 - [x] 8.5 Append source to ProjectConfig sources array
 - [x] 8.6 Save config atomically preserving existing sources
-- [ ] 8.7 Write unit tests for config update logic and round-trip (load, modify, save, load)
+- [x] 8.7 Write unit tests for config update logic and round-trip (load, modify, save, load)
 
 ## 9. Add Command Integration
 
@@ -83,7 +83,7 @@
 - [x] 9.5 Add progress indicators for long operations (cloning, copying)
 - [x] 9.6 Display success message with summary and next steps
 - [x] 9.7 Register add command in cmd/dnaspec/main.go
-- [ ] 9.8 Write integration tests for full add workflow (git and local)
+- [x] 9.8 Write integration tests for full add workflow (git and local)
 
 ## 10. Error Handling and UX
 
@@ -93,17 +93,17 @@
 - [x] 10.4 Use lipgloss for styled terminal output (success, errors, progress)
 - [x] 10.5 Add timeout error handling for git operations
 - [x] 10.6 Handle network failures gracefully
-- [ ] 10.7 Test error scenarios manually (duplicate names, missing manifest, invalid URLs, permissions)
+- [x] 10.7 Test error scenarios manually (duplicate names, missing manifest, invalid URLs, permissions)
 
 ## 11. Testing and Validation
 
-- [ ] 11.1 Achieve >80% code coverage for core logic (data models, git ops, file ops, config management)
-- [ ] 11.2 Write comprehensive unit tests for edge cases
-- [ ] 11.3 Create test fixtures (valid/invalid manifests, sample DNA repos)
-- [ ] 11.4 Write integration tests for full workflows
-- [ ] 11.5 Test security scenarios (path traversal, insecure URLs)
-- [ ] 11.6 Manual testing: init creates config, add with git repo, add with local path, interactive/non-interactive selection
-- [ ] 11.7 Manual testing: dry-run mode, error scenarios, cancellation
+- [x] 11.1 Achieve >80% code coverage for core logic (data models, git ops, file ops, config management)
+- [x] 11.2 Write comprehensive unit tests for edge cases
+- [x] 11.3 Create test fixtures (valid/invalid manifests, sample DNA repos)
+- [x] 11.4 Write integration tests for full workflows
+- [x] 11.5 Test security scenarios (path traversal, insecure URLs)
+- [x] 11.6 Manual testing: init creates config, add with git repo, add with local path, interactive/non-interactive selection
+- [x] 11.7 Manual testing: dry-run mode, error scenarios, cancellation
 
 ## 12. Documentation
 
