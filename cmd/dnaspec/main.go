@@ -19,6 +19,7 @@ func main() {
 	rootCmd.AddCommand(project.NewRemoveCmd())
 	rootCmd.AddCommand(project.NewValidateCmd())
 	rootCmd.AddCommand(project.NewSyncCmd())
+	rootCmd.AddCommand(cli.NewVersionCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
