@@ -1,0 +1,13 @@
+# Minimal DNASpec Manifest Example
+# This is the simplest valid manifest with one guideline and no prompts
+
+version: 1
+
+guidelines:
+  - name: example-guideline
+    file: guidelines/example.md
+    description: An example guideline
+    applicable_scenarios:
+      - Example scenario
+
+prompts: []

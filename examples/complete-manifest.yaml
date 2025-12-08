@@ -1,0 +1,50 @@
+# Complete DNASpec Manifest Example
+# This demonstrates all features of a DNASpec manifest
+
+version: 1
+
+guidelines:
+  # Guideline with multiple applicable scenarios and prompt references
+  - name: code-quality
+    file: guidelines/code-quality.md
+    description: Code quality standards and best practices
+    applicable_scenarios:
+      - Writing new code
+      - Reviewing code changes
+      - Refactoring existing code
+    prompts:
+      - code-review
+      - refactoring-checklist
+
+  # Guideline with single scenario
+  - name: security-practices
+    file: guidelines/security-practices.md
+    description: Security guidelines for safe code development
+    applicable_scenarios:
+      - Implementing authentication or authorization
+      - Handling user data
+      - Processing external input
+    prompts:
+      - security-review
+
+  # Guideline without prompts
+  - name: documentation-standards
+    file: guidelines/documentation-standards.md
+    description: Standards for writing clear and maintainable documentation
+    applicable_scenarios:
+      - Writing README files
+      - Adding code comments
+      - Creating API documentation
+
+prompts:
+  - name: code-review
+    file: prompts/code-review.md
+    description: Comprehensive code review checklist
+
+  - name: refactoring-checklist
+    file: prompts/refactoring-checklist.md
+    description: Steps to follow when refactoring code
+
+  - name: security-review
+    file: prompts/security-review.md
+    description: Security-focused review questions

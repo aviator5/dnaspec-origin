@@ -1,0 +1,23 @@
+# Simple DNASpec project configuration
+# This example shows a project using DNA guidelines from a single git repository
+
+version: 1
+
+sources:
+  - name: "company-dna"
+    type: "git-repo"
+    url: "https://github.com/company/dna-guidelines"
+    ref: "v1.0.0"
+    commit: "abc123def456789012345678901234567890abcd"
+    guidelines:
+      - name: "go-style"
+        file: "guidelines/go-style.md"
+        description: "Go coding style conventions"
+        applicable_scenarios:
+          - "Writing new Go code"
+          - "Reviewing Go code"
+        prompts: ["code-review"]
+    prompts:
+      - name: "code-review"
+        file: "prompts/code-review.md"
+        description: "Code review checklist"

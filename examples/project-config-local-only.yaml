@@ -1,0 +1,31 @@
+# Local-only DNASpec project configuration
+# This example shows a project using DNA guidelines from a local directory only
+
+version: 1
+
+sources:
+  - name: "my-patterns"
+    type: "local"
+    path: "/Users/me/my-dna-patterns"
+    guidelines:
+      - name: "typescript-style"
+        file: "guidelines/typescript-style.md"
+        description: "TypeScript coding conventions"
+        applicable_scenarios:
+          - "Writing TypeScript code"
+          - "Code reviews"
+        prompts: ["ts-review"]
+      - name: "react-patterns"
+        file: "guidelines/react-patterns.md"
+        description: "React component patterns"
+        applicable_scenarios:
+          - "Creating React components"
+          - "Refactoring components"
+        prompts: ["component-review"]
+    prompts:
+      - name: "ts-review"
+        file: "prompts/ts-review.md"
+        description: "TypeScript code review"
+      - name: "component-review"
+        file: "prompts/component-review.md"
+        description: "React component review"

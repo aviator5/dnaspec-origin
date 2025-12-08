@@ -1,0 +1,65 @@
+# Multi-source DNASpec project configuration
+# This example shows a project using DNA guidelines from multiple sources
+
+version: 1
+
+agents:
+  - "claude-code"
+  - "github-copilot"
+
+sources:
+  # Company-wide DNA guidelines from git repository
+  - name: "company-dna"
+    type: "git-repo"
+    url: "https://github.com/company/dna-guidelines"
+    ref: "v1.2.0"
+    commit: "abc123def456789012345678901234567890abcd"
+    guidelines:
+      - name: "go-style"
+        file: "guidelines/go-style.md"
+        description: "Go coding style conventions"
+        applicable_scenarios:
+          - "Writing new Go code"
+          - "Reviewing Go code"
+        prompts: ["code-review", "documentation"]
+      - name: "rest-api"
+        file: "guidelines/rest-api.md"
+        description: "REST API design principles"
+        applicable_scenarios:
+          - "Designing APIs"
+          - "Reviewing API specifications"
+        prompts: ["api-review"]
+    prompts:
+      - name: "code-review"
+        file: "prompts/code-review.md"
+        description: "Code review checklist"
+      - name: "documentation"
+        file: "prompts/documentation.md"
+        description: "Documentation standards"
+      - name: "api-review"
+        file: "prompts/api-review.md"
+        description: "API review checklist"
+
+  # Team-specific patterns from local directory
+  - name: "team-patterns"
+    type: "local"
+    path: "/Users/dev/team-dna-patterns"
+    guidelines:
+      - name: "error-handling"
+        file: "guidelines/error-handling.md"
+        description: "Team error handling patterns"
+        applicable_scenarios:
+          - "Handling errors in services"
+          - "Logging and monitoring"
+        prompts: []
+      - name: "database-migrations"
+        file: "guidelines/database-migrations.md"
+        description: "Database schema migration guidelines"
+        applicable_scenarios:
+          - "Creating database migrations"
+          - "Reviewing schema changes"
+        prompts: ["migration-checklist"]
+    prompts:
+      - name: "migration-checklist"
+        file: "prompts/migration-checklist.md"
+        description: "Database migration review checklist"

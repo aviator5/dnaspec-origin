@@ -1,0 +1,75 @@
+# DNASpec Manifest for Go Projects
+# Example manifest tailored for Go development
+
+version: 1
+
+guidelines:
+  - name: go-style-guide
+    file: guidelines/go-style-guide.md
+    description: Go coding style and conventions following Effective Go
+    applicable_scenarios:
+      - Writing Go code
+      - Code reviews for Go projects
+      - Setting up new Go packages
+    prompts:
+      - go-code-review
+      - go-naming-check
+
+  - name: go-error-handling
+    file: guidelines/go-error-handling.md
+    description: Best practices for error handling in Go
+    applicable_scenarios:
+      - Implementing error handling
+      - Reviewing error propagation
+      - Designing APIs that return errors
+    prompts:
+      - error-handling-review
+
+  - name: go-testing
+    file: guidelines/go-testing.md
+    description: Testing patterns and practices for Go
+    applicable_scenarios:
+      - Writing unit tests
+      - Writing integration tests
+      - Setting up test fixtures
+    prompts:
+      - test-coverage-check
+
+  - name: go-concurrency
+    file: guidelines/go-concurrency.md
+    description: Guidelines for safe concurrent programming with goroutines and channels
+    applicable_scenarios:
+      - Using goroutines and channels
+      - Implementing concurrent patterns
+      - Debugging race conditions
+    prompts:
+      - concurrency-review
+
+  - name: go-api-design
+    file: guidelines/go-api-design.md
+    description: Designing clean and idiomatic Go APIs
+    applicable_scenarios:
+      - Creating new packages
+      - Designing public interfaces
+      - Refactoring APIs
+
+prompts:
+  - name: go-code-review
+    file: prompts/go-code-review.md
+    description: Go-specific code review checklist
+
+  - name: go-naming-check
+    file: prompts/go-naming-check.md
+    description: Verify Go naming conventions are followed
+
+  - name: error-handling-review
+    file: prompts/error-handling-review.md
+    description: Review error handling implementation
+
+  - name: test-coverage-check
+    file: prompts/test-coverage-check.md
+    description: Ensure adequate test coverage
+
+  - name: concurrency-review
+    file: prompts/concurrency-review.md
+    description: Review concurrent code for correctness and safety
