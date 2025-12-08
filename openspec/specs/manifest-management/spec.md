@@ -1,7 +1,9 @@
 # manifest-management Specification
 
 ## Purpose
-TBD - created by archiving change add-manifest-commands. Update Purpose after archive.
+
+Provides tools for DNA repository maintainers to create and validate `dnaspec-manifest.yaml` files, ensuring manifests have proper structure, valid file references, and correct metadata before publishing.
+
 ## Requirements
 ### Requirement: Manifest Initialization
 

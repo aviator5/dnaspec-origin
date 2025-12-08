@@ -1,7 +1,14 @@
 # agent-integration Specification
 
 ## Purpose
-TBD - created by archiving change add-update-agents-command. Update Purpose after archive.
+
+Enable AI coding assistants (Claude Code, GitHub Copilot) to discover and use DNA guidelines by generating agent-specific integration files with context-aware instructions.
+
+## Related Specifications
+
+- **manifest-management**: Ensures applicable_scenarios field is populated and validated
+- **project-management**: Provides dnaspec.yaml structure and ProjectConfig data model
+
 ## Requirements
 ### Requirement: Agent Selection and Configuration
 
