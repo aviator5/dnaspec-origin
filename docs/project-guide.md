@@ -71,6 +71,8 @@ dnaspec version
 
 ## Quick Start
 
+### Single Source Setup
+
 1. Initialize DNASpec in your project:
 ```bash
 dnaspec init
@@ -90,6 +92,33 @@ dnaspec update-agents
 ```bash
 dnaspec add /path/to/local/dna-guidelines
 ```
+
+### Multiple Sources Setup
+
+DNASpec supports adding guidelines from **multiple sources** to a single project:
+
+```bash
+# Add company-wide guidelines
+dnaspec add --git-repo https://github.com/company/dna --name company
+
+# Add team-specific patterns
+dnaspec add --git-repo https://github.com/team/patterns --name team
+
+# Add personal experimental guidelines
+dnaspec add /Users/me/my-dna --name personal
+
+# Generate agent configuration with all sources
+dnaspec update-agents
+```
+
+**Benefits of multiple sources:**
+- **Company-wide standards**: Shared across all organization projects
+- **Team-specific patterns**: Tailored to your team's tech stack
+- **Personal guidelines**: Your own best practices
+- **Independent versioning**: Update each source on its own schedule
+- **Namespace isolation**: No conflicts between sources (e.g., `company-review` vs `team-review`)
+
+All guidelines from all sources are available to AI agents simultaneously.
 
 ## Project Commands Reference
 
