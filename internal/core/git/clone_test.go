@@ -2,7 +2,9 @@ package git
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -11,26 +13,44 @@ func TestCloneRepo_Integration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	// Disable git terminal prompts to prevent hanging on authentication
-	t.Setenv("GIT_TERMINAL_PROMPT", "0")
+	// Create a local git repository
+	repoDir := t.TempDir()
+
+	// Initialize repo
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "test@example.com")
+	runGit(t, repoDir, "config", "user.name", "Test User")
+	runGit(t, repoDir, "branch", "-m", "main")
+
+	// Create a file
+	err := os.WriteFile(filepath.Join(repoDir, "test.txt"), []byte("content"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+
+	// Commit
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "commit", "-m", "Initial commit")
+
+	// Get head hash
+	headHash := getGitHead(t, repoDir)
+
+	// Create a tag
+	runGit(t, repoDir, "tag", "v1.0.0")
 
 	t.Run("clone public repository", func(t *testing.T) {
 		destDir := t.TempDir()
 
-		// Use a small, stable public repository
-		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+		// Use local repo
+		url := "file://" + repoDir
 		commit, err := CloneRepo(url, "", destDir)
 
 		if err != nil {
-			// If the test repo doesn't exist, skip this test
-			if os.Getenv("CI") != "true" {
-				t.Skipf("Test repository not available: %v", err)
-			}
 			t.Fatalf("CloneRepo() error = %v", err)
 		}
 
-		if commit == "" {
-			t.Error("Expected non-empty commit hash")
+		if commit != headHash {
+			t.Errorf("Expected commit hash %s, got %s", headHash, commit)
 		}
 
 		// Verify .git directory exists
@@ -43,19 +63,16 @@ func TestCloneRepo_Integration(t *testing.T) {
 	t.Run("clone with specific ref", func(t *testing.T) {
 		destDir := t.TempDir()
 
-		// Use a repository with tags
-		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+		// Use local repo
+		url := "file://" + repoDir
 		commit, err := CloneRepo(url, "main", destDir)
 
 		if err != nil {
-			if os.Getenv("CI") != "true" {
-				t.Skipf("Test repository not available: %v", err)
-			}
 			t.Fatalf("CloneRepo() error = %v", err)
 		}
 
-		if commit == "" {
-			t.Error("Expected non-empty commit hash")
+		if commit != headHash {
+			t.Errorf("Expected commit hash %s, got %s", headHash, commit)
 		}
 	})
 
@@ -84,13 +101,10 @@ func TestCloneRepo_Integration(t *testing.T) {
 	t.Run("clone produces commit hash", func(t *testing.T) {
 		destDir := t.TempDir()
 
-		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+		url := "file://" + repoDir
 		commit, err := CloneRepo(url, "", destDir)
 
 		if err != nil {
-			if os.Getenv("CI") != "true" {
-				t.Skipf("Test repository not available: %v", err)
-			}
 			t.Fatalf("CloneRepo() error = %v", err)
 		}
 
@@ -108,7 +122,7 @@ func TestCloneRepo_Unit(t *testing.T) {
 		// Invalid URL should be rejected before attempting clone
 		invalidURLs := []string{
 			"git://github.com/test/repo.git",
-			"file:///local/path",
+			// file:// is now allowed, so removed from here
 			"ftp://server.com/repo.git",
 		}
 
@@ -125,6 +139,7 @@ func TestCloneRepo_Unit(t *testing.T) {
 		validURLs := []string{
 			"https://github.com/test/repo.git",
 			"git@github.com:test/repo.git",
+			"file:///local/path",
 		}
 
 		for _, url := range validURLs {
@@ -134,4 +149,25 @@ func TestCloneRepo_Unit(t *testing.T) {
 			}
 		}
 	})
+}
+
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\nOutput: %s", args, err, out)
+	}
+}
+
+func getGitHead(t *testing.T, dir string) string {
+	t.Helper()
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git rev-parse HEAD failed: %v", err)
+	}
+	return strings.TrimSpace(string(out))
 }
