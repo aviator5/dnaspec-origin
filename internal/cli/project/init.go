@@ -52,7 +52,7 @@ func runInit() error {
 	fmt.Println()
 	fmt.Println(ui.InfoStyle.Render("Next steps:"))
 	fmt.Println("  1. Run", ui.CodeStyle.Render("dnaspec add"), "to add DNA sources (git repositories or local directories)")
-	fmt.Println("  2. Select which guidelines to include from each source")
+	fmt.Println("  2. Run", ui.CodeStyle.Render("dnaspec update-agents"), "to configure AI agents")
 	fmt.Println()
 	fmt.Println(ui.SubtleStyle.Render("Examples:"))
 	fmt.Println("  ", ui.CodeStyle.Render("dnaspec add --git-repo https://github.com/company/dna"))

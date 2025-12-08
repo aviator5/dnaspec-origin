@@ -60,3 +60,9 @@ func ManifestGuidelinesToProject(guidelines []ManifestGuideline) []ProjectGuidel
 	}
 	return result
 }
+
+// UpdateAgents updates the agents configuration in-memory
+// Caller is responsible for saving the config
+func UpdateAgents(cfg *ProjectConfig, agents []string) {
+	cfg.Agents = agents
+}

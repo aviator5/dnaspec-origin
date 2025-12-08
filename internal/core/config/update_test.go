@@ -190,6 +190,97 @@ func TestManifestGuidelinesToProject(t *testing.T) {
 	})
 }
 
+func TestUpdateAgents(t *testing.T) {
+	t.Run("update agents and save config", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := tmpDir + "/dnaspec.yaml"
+
+		// Create initial config with no agents
+		cfg := &ProjectConfig{
+			Version: 1,
+			Agents:  []string{},
+			Sources: []ProjectSource{},
+		}
+
+		// Save it
+		if err := SaveProjectConfig(configPath, cfg); err != nil {
+			t.Fatalf("SaveProjectConfig() error = %v", err)
+		}
+
+		// Load it
+		loaded, err := LoadProjectConfig(configPath)
+		if err != nil {
+			t.Fatalf("LoadProjectConfig() error = %v", err)
+		}
+
+		// Update agents
+		newAgents := []string{"claude-code", "github-copilot"}
+		UpdateAgents(loaded, newAgents)
+
+		// Save the updated config
+		if err := SaveProjectConfig(configPath, loaded); err != nil {
+			t.Fatalf("SaveProjectConfig() error = %v", err)
+		}
+
+		// Load again to verify
+		final, err := LoadProjectConfig(configPath)
+		if err != nil {
+			t.Fatalf("LoadProjectConfig() error = %v", err)
+		}
+
+		if len(final.Agents) != 2 {
+			t.Errorf("Expected 2 agents, got %d", len(final.Agents))
+		}
+
+		if final.Agents[0] != "claude-code" || final.Agents[1] != "github-copilot" {
+			t.Errorf("Agents = %v, want [claude-code github-copilot]", final.Agents)
+		}
+	})
+
+	t.Run("update agents replaces previous selection", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := tmpDir + "/dnaspec.yaml"
+
+		// Create config with initial agent selection
+		cfg := &ProjectConfig{
+			Version: 1,
+			Agents:  []string{"claude-code"},
+			Sources: []ProjectSource{},
+		}
+
+		if err := SaveProjectConfig(configPath, cfg); err != nil {
+			t.Fatalf("SaveProjectConfig() error = %v", err)
+		}
+
+		loaded, err := LoadProjectConfig(configPath)
+		if err != nil {
+			t.Fatalf("LoadProjectConfig() error = %v", err)
+		}
+
+		// Update to different agents
+		UpdateAgents(loaded, []string{"github-copilot"})
+
+		// Save the updated config
+		if err := SaveProjectConfig(configPath, loaded); err != nil {
+			t.Fatalf("SaveProjectConfig() error = %v", err)
+		}
+
+		// Load and verify
+		final, err := LoadProjectConfig(configPath)
+		if err != nil {
+			t.Fatalf("LoadProjectConfig() error = %v", err)
+		}
+
+		if len(final.Agents) != 1 {
+			t.Errorf("Expected 1 agent, got %d", len(final.Agents))
+		}
+
+		if final.Agents[0] != "github-copilot" {
+			t.Errorf("Agents = %v, want [github-copilot]", final.Agents)
+		}
+	})
+}
+
 func TestRoundTrip(t *testing.T) {
 	t.Run("load, modify, save, load config", func(t *testing.T) {
 		tmpDir := t.TempDir()
