@@ -213,7 +213,7 @@ func runAdd(flags addFlags, args []string) error {
 	fmt.Println("  Files copied to:", ui.CodeStyle.Render(destDir))
 	fmt.Println()
 	fmt.Println(ui.SubtleStyle.Render("Next steps:"))
-	fmt.Println("  Run", ui.CodeStyle.Render("dnaspec update-agents"), "to configure AI agents (coming soon)")
+	fmt.Println("  Run", ui.CodeStyle.Render("dnaspec update-agents"), "to configure AI agents")
 
 	return nil
 }
