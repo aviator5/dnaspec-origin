@@ -51,5 +51,5 @@ func SaveManifest(path string, manifest *Manifest) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o644)
 }

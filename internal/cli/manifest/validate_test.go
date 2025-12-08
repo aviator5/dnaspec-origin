@@ -13,7 +13,10 @@ func TestValidateCmd_Success(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -55,7 +58,10 @@ func TestValidateCmd_ManifestNotFound(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -70,7 +76,10 @@ func TestValidateCmd_InvalidYAML(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -89,7 +98,10 @@ func TestValidateCmd_MissingFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -117,7 +129,10 @@ func TestValidateCmd_InvalidNaming(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -151,7 +166,10 @@ func TestValidateCmd_EmptyApplicableScenarios(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -184,7 +202,10 @@ func TestValidateCmd_UndefinedPromptReference(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -220,7 +241,10 @@ func TestValidateCmd_PathTraversal(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -248,7 +272,10 @@ func TestValidateCmd_ComplexValid(t *testing.T) {
 	tmpDir := t.TempDir()
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)

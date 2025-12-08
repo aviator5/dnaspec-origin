@@ -55,7 +55,7 @@ func FetchGitSource(url, ref string) (*SourceInfo, func(), error) {
 	info := &SourceInfo{
 		Manifest:   manifest,
 		SourceDir:  tempDir,
-		SourceType: "git-repo",
+		SourceType: config.SourceTypeGitRepo,
 		URL:        url,
 		Ref:        ref,
 		Commit:     commit,
@@ -103,7 +103,7 @@ func FetchLocalSource(path string) (*SourceInfo, error) {
 	info := &SourceInfo{
 		Manifest:   manifest,
 		SourceDir:  absPath,
-		SourceType: "local-path",
+		SourceType: config.SourceTypeLocalPath,
 		Path:       absPath,
 	}
 

@@ -14,7 +14,10 @@ func TestGenerateClaudeMD(t *testing.T) {
 	// Create temp directory for test
 	tempDir := t.TempDir()
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err := os.Chdir(tempDir)
 	require.NoError(t, err)
@@ -91,11 +94,11 @@ Additional notes.`
 
 	t.Run("same content as AGENTS.md when both created fresh", func(t *testing.T) {
 		// Remove existing files to ensure fresh start
-		os.Remove("AGENTS.md")
-		os.Remove("CLAUDE.md")
+		_ = os.RemoveAll("AGENTS.md")
+		_ = os.RemoveAll("CLAUDE.md")
 
 		// Generate both files fresh
-		err := GenerateAgentsMD(config)
+		err = GenerateAgentsMD(config)
 		require.NoError(t, err)
 
 		err = GenerateClaudeMD(config)

@@ -13,13 +13,13 @@ const (
 
 // DetectManagedBlock checks if content contains managed block markers
 // Returns hasBlock, startIdx, endIdx
-func DetectManagedBlock(content string) (bool, int, int) {
-	startIdx := strings.Index(content, ManagedBlockStart)
+func DetectManagedBlock(content string) (hasBlock bool, startIdx int, endIdx int) {
+	startIdx = strings.Index(content, ManagedBlockStart)
 	if startIdx == -1 {
 		return false, -1, -1
 	}
 
-	endIdx := strings.Index(content, ManagedBlockEnd)
+	endIdx = strings.Index(content, ManagedBlockEnd)
 	if endIdx == -1 {
 		return false, -1, -1
 	}

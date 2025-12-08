@@ -54,7 +54,7 @@ func runValidate() error {
 
 	// Collect all validation errors
 	var errors []string
-	var warnings []string
+
 	var validatedFiles []string
 
 	// Validate config version
@@ -71,54 +71,17 @@ func runValidate() error {
 	// Validate sources
 	fmt.Printf(ui.SuccessStyle.Render("✓")+" %d sources configured\n", len(cfg.Sources))
 
-	for _, src := range cfg.Sources {
+	for i := range cfg.Sources {
+		src := &cfg.Sources[i]
 		// Check for duplicate source names
 		if sourceNames[src.Name] {
 			errors = append(errors, fmt.Sprintf("Duplicate source name: '%s'", src.Name))
 		}
 		sourceNames[src.Name] = true
 
-		// Check required fields based on source type
-		if src.Name == "" {
-			errors = append(errors, "Source missing required field: name")
-		}
-
-		if src.Type == "" {
-			errors = append(errors, fmt.Sprintf("Source '%s' missing required field: type", src.Name))
-		}
-
-		if src.Type == "git-repo" {
-			if src.URL == "" {
-				errors = append(errors, fmt.Sprintf("Source '%s' (git-repo) missing required field: url", src.Name))
-			}
-			if src.Commit == "" {
-				errors = append(errors, fmt.Sprintf("Source '%s' (git-repo) missing required field: commit", src.Name))
-			}
-		} else if src.Type == "local-dir" {
-			if src.Path == "" {
-				errors = append(errors, fmt.Sprintf("Source '%s' (local-dir) missing required field: path", src.Name))
-			}
-		}
-
-		// Validate guideline file references
-		for _, guideline := range src.Guidelines {
-			filePath := filepath.Join("dnaspec", src.Name, guideline.File)
-			if _, err := os.Stat(filePath); os.IsNotExist(err) {
-				errors = append(errors, fmt.Sprintf("File not found: %s", filePath))
-			} else {
-				validatedFiles = append(validatedFiles, filePath)
-			}
-		}
-
-		// Validate prompt file references
-		for _, prompt := range src.Prompts {
-			filePath := filepath.Join("dnaspec", src.Name, prompt.File)
-			if _, err := os.Stat(filePath); os.IsNotExist(err) {
-				errors = append(errors, fmt.Sprintf("File not found: %s", filePath))
-			} else {
-				validatedFiles = append(validatedFiles, filePath)
-			}
-		}
+		sourceErrors, sourceFiles := validateSource(src)
+		errors = append(errors, sourceErrors...)
+		validatedFiles = append(validatedFiles, sourceFiles...)
 	}
 
 	// Validate agent IDs
@@ -137,14 +100,6 @@ func runValidate() error {
 		fmt.Println(ui.SuccessStyle.Render("✓"), "All agent IDs recognized:", formatList(cfg.Agents))
 	}
 
-	// Display warnings
-	if len(warnings) > 0 {
-		fmt.Println()
-		for _, warning := range warnings {
-			fmt.Println(ui.SubtleStyle.Render("⚠ Warning:"), warning)
-		}
-	}
-
 	// Report results
 	if len(errors) == 0 {
 		// Success case
@@ -157,27 +112,61 @@ func runValidate() error {
 		return nil
 	}
 
-	// Error case
+	// Failure case
 	fmt.Println()
-	errorCount := len(errors)
-	warningCount := len(warnings)
-
-	if errorCount > 0 {
-		fmt.Println(ui.ErrorStyle.Render(fmt.Sprintf("✗ Found %d validation error(s):", errorCount)))
-		fmt.Println()
-		for _, err := range errors {
-			fmt.Println("  •", err)
-		}
-		fmt.Println()
+	fmt.Println(ui.ErrorStyle.Render("✗"), "Validation found", len(errors), "errors:")
+	for _, err := range errors {
+		fmt.Println("  -", err)
 	}
-
-	suffix := ""
-	if warningCount > 0 {
-		suffix = fmt.Sprintf(", %d warning(s)", warningCount)
-	}
-	fmt.Println(ui.ErrorStyle.Render(fmt.Sprintf("Validation failed with %d error(s)%s", errorCount, suffix)))
 
 	return fmt.Errorf("validation failed")
+}
+
+func validateSource(src *config.ProjectSource) (errors []string, validatedFiles []string) {
+	// Check required fields based on source type
+	if src.Name == "" {
+		errors = append(errors, "Source missing required field: name")
+	}
+
+	if src.Type == "" {
+		errors = append(errors, fmt.Sprintf("Source '%s' missing required field: type", src.Name))
+	}
+
+	switch src.Type {
+	case config.SourceTypeGitRepo:
+		if src.URL == "" {
+			errors = append(errors, fmt.Sprintf("Source '%s' (%s) missing required field: url", src.Name, config.SourceTypeGitRepo))
+		}
+		if src.Commit == "" {
+			errors = append(errors, fmt.Sprintf("Source '%s' (%s) missing required field: commit", src.Name, config.SourceTypeGitRepo))
+		}
+	case config.SourceTypeLocalPath:
+		if src.Path == "" {
+			errors = append(errors, fmt.Sprintf("Source '%s' (%s) missing required field: path", src.Name, config.SourceTypeLocalPath))
+		}
+	}
+
+	// Validate guideline file references
+	for _, guideline := range src.Guidelines {
+		filePath := filepath.Join("dnaspec", src.Name, guideline.File)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			errors = append(errors, fmt.Sprintf("File not found: %s", filePath))
+		} else {
+			validatedFiles = append(validatedFiles, filePath)
+		}
+	}
+
+	// Validate prompt file references
+	for _, prompt := range src.Prompts {
+		filePath := filepath.Join("dnaspec", src.Name, prompt.File)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			errors = append(errors, fmt.Sprintf("File not found: %s", filePath))
+		} else {
+			validatedFiles = append(validatedFiles, filePath)
+		}
+	}
+
+	return errors, validatedFiles
 }
 
 // Helper function to format list

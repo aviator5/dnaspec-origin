@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/ui"
-	"github.com/spf13/cobra"
 )
 
 const projectConfigFileName = "dnaspec.yaml"

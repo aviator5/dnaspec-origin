@@ -18,7 +18,7 @@ func GenerateCopilotPrompt(sourceName string, prompt config.ProjectPrompt, sourc
 
 	// Create directory if needed
 	dir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 

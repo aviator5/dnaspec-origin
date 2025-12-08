@@ -70,7 +70,10 @@ func TestGenerateClaudeCommandContent(t *testing.T) {
 func TestGenerateClaudeCommand(t *testing.T) {
 	tempDir := t.TempDir()
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err := os.Chdir(tempDir)
 	require.NoError(t, err)

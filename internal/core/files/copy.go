@@ -17,7 +17,7 @@ func CopyGuidelineFiles(sourceDir, destDir string, guidelines []config.ManifestG
 	// Helper to rollback on error
 	rollback := func() {
 		for _, file := range copiedFiles {
-			os.Remove(file) // Best effort cleanup, ignore errors
+			_ = os.Remove(file) // Best effort cleanup, ignore errors
 		}
 	}
 
@@ -50,7 +50,7 @@ func CopyGuidelineFiles(sourceDir, destDir string, guidelines []config.ManifestG
 // Creates parent directories as needed
 func copyFile(src, dst string) error {
 	// Create destination directory
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -61,7 +61,7 @@ func copyFile(src, dst string) error {
 	}
 
 	// Write destination file
-	if err := os.WriteFile(dst, data, 0644); err != nil {
+	if err := os.WriteFile(dst, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write destination file: %w", err)
 	}
 

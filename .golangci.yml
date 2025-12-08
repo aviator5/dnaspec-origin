@@ -1,0 +1,78 @@
+version: "2"
+
+linters:
+  default: "none"
+  enable:
+    - bodyclose
+    - dogsled
+    - dupl
+    - errcheck
+    - funlen
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+    gocyclo:
+      min-complexity: 15
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    misspell:
+      locale: US
+    lll:
+      line-length: 140
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+        - experimental
+      disabled-checks:
+        - paramTypeCombine
+      settings:
+        hugeParam:
+          sizeThreshold: 256
+    funlen:
+      lines: 100
+      statements: 50
+  
+  exclusions:
+    rules:
+      - path: '(.+)_test\.go'
+        linters:
+          - dogsled
+          - dupl
+          - errcheck
+          - funlen
+          - goconst
+          - gocyclo
+          - gocritic
+          - gosec
+          - govet
+          - lll
+          - ineffassign
+          - noctx
+          - unused
+      # Exclude gosec warnings for standard file/directory permissions
+      - linters:
+          - gosec
+        text: "G301|G304|G306"

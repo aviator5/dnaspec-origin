@@ -117,7 +117,7 @@ func TestSyncCommand_WithLocalSource(t *testing.T) {
 		Sources: []config.ProjectSource{
 			{
 				Name: "test-source",
-				Type: "local-dir",
+				Type: config.SourceTypeLocalPath,
 				Path: repoDir,
 				Guidelines: []config.ProjectGuideline{
 					{
@@ -158,7 +158,7 @@ func TestSyncCommand_WithLocalSource(t *testing.T) {
 
 	// Run sync - note: this may fail if update-agents tries to write to protected dirs
 	// but we're primarily testing the sync workflow
-	err = runSync(false)
+	_ = runSync(false)
 	// Sync might fail on agent file generation in test environment, but that's okay
 	// We're testing that it calls the right functions in the right order
 }

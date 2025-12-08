@@ -10,7 +10,7 @@ import (
 
 // CreateTempCloneDir creates a temporary directory for git cloning
 // Returns the directory path and a cleanup function
-func CreateTempCloneDir() (string, func(), error) {
+func CreateTempCloneDir() (path string, cleanup func(), err error) {
 	// Generate unique ID using random bytes
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
@@ -25,13 +25,13 @@ func CreateTempCloneDir() (string, func(), error) {
 		fmt.Sprintf("%d-%s", os.Getpid(), randomID),
 	)
 
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
+	if err := os.MkdirAll(tempDir, 0o755); err != nil {
 		return "", nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
 	// Cleanup function
 	cleanupFn := func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	}
 
 	return tempDir, cleanupFn, nil

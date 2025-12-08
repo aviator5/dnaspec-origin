@@ -49,7 +49,7 @@ prompts:
 
 // CreateExampleManifest creates an example manifest file at the given path
 func CreateExampleManifest(path string) error {
-	return os.WriteFile(path, []byte(ExampleManifestYAML), 0644)
+	return os.WriteFile(path, []byte(ExampleManifestYAML), 0o644)
 }
 
 // ExampleProjectYAML returns an example project config YAML content with helpful comments
@@ -86,5 +86,5 @@ version: 1
 
 // CreateExampleProjectConfig creates an example project config file at the given path
 func CreateExampleProjectConfig(path string) error {
-	return os.WriteFile(path, []byte(ExampleProjectYAML), 0644)
+	return os.WriteFile(path, []byte(ExampleProjectYAML), 0o644)
 }

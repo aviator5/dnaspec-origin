@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aviator5/dnaspec/internal/core/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateCommand_Integration(t *testing.T) {
@@ -125,7 +126,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		defer os.Chdir(origDir)
 
 		os.Chdir(projectDir)
-		runInit()
+		err := runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 
@@ -133,13 +135,15 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		addFlags := addFlags{
 			all: true,
 		}
-		runAdd(addFlags, []string{testdataPath})
+		err = runAdd(addFlags, []string{testdataPath})
+		require.NoError(t, err)
 
 		// Update config to point to updated fixture
 		cfg, _ := config.LoadProjectConfig(projectConfigFileName)
 		updatedPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo-updated"))
 		cfg.Sources[0].Path = updatedPath
-		config.SaveProjectConfig(projectConfigFileName, cfg)
+		err = config.SaveProjectConfig(projectConfigFileName, cfg)
+		require.NoError(t, err)
 
 		// Run update with --add-new=none
 		updateFlags := updateFlags{
@@ -172,7 +176,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		defer os.Chdir(origDir)
 
 		os.Chdir(projectDir)
-		runInit()
+		err := runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 
@@ -180,7 +185,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		addFlags := addFlags{
 			all: true,
 		}
-		runAdd(addFlags, []string{testdataPath})
+		err = runAdd(addFlags, []string{testdataPath})
+		require.NoError(t, err)
 
 		// Get initial config state
 		cfgBefore, _ := config.LoadProjectConfig(projectConfigFileName)
@@ -189,7 +195,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		// Update config to point to updated fixture
 		updatedPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo-updated"))
 		cfgBefore.Sources[0].Path = updatedPath
-		config.SaveProjectConfig(projectConfigFileName, cfgBefore)
+		err = config.SaveProjectConfig(projectConfigFileName, cfgBefore)
+		require.NoError(t, err)
 
 		// Run update with dry-run
 		updateFlags := updateFlags{
@@ -221,7 +228,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		defer os.Chdir(origDir)
 
 		os.Chdir(projectDir)
-		runInit()
+		err := runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 
@@ -230,13 +238,15 @@ func TestUpdateCommand_Integration(t *testing.T) {
 			all:  true,
 			name: "source-1",
 		}
-		runAdd(addFlags1, []string{testdataPath})
+		err = runAdd(addFlags1, []string{testdataPath})
+		require.NoError(t, err)
 
 		addFlags2 := addFlags{
 			all:  true,
 			name: "source-2",
 		}
-		runAdd(addFlags2, []string{testdataPath})
+		err = runAdd(addFlags2, []string{testdataPath})
+		require.NoError(t, err)
 
 		// Verify we have 2 sources
 		cfg, _ := config.LoadProjectConfig(projectConfigFileName)
@@ -248,7 +258,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		updatedPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo-updated"))
 		cfg.Sources[0].Path = updatedPath
 		cfg.Sources[1].Path = updatedPath
-		config.SaveProjectConfig(projectConfigFileName, cfg)
+		err = config.SaveProjectConfig(projectConfigFileName, cfg)
+		require.NoError(t, err)
 
 		// Run update --all
 		updateFlags := updateFlags{
@@ -279,7 +290,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		defer os.Chdir(origDir)
 
 		os.Chdir(projectDir)
-		runInit()
+		err := runInit()
+		require.NoError(t, err)
 
 		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
 
@@ -287,7 +299,8 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		addFlags := addFlags{
 			all: true,
 		}
-		runAdd(addFlags, []string{testdataPath})
+		err = runAdd(addFlags, []string{testdataPath})
+		require.NoError(t, err)
 
 		// Run update without changing the source
 		cfg, _ := config.LoadProjectConfig(projectConfigFileName)

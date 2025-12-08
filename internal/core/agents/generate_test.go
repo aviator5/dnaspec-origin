@@ -13,7 +13,10 @@ import (
 func TestGenerateAgentFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err := os.Chdir(tempDir)
 	require.NoError(t, err)
@@ -71,8 +74,10 @@ func TestGenerateAgentFiles(t *testing.T) {
 
 	t.Run("generate for Copilot only", func(t *testing.T) {
 		// Clean up previous files
-		os.RemoveAll(".claude")
-		os.Remove("CLAUDE.md")
+		err := os.RemoveAll(".claude")
+		require.NoError(t, err)
+		err = os.Remove("CLAUDE.md")
+		require.NoError(t, err)
 
 		summary, err := GenerateAgentFiles(cfg, []string{"github-copilot"})
 		require.NoError(t, err)
@@ -119,9 +124,9 @@ func TestGenerateAgentFiles(t *testing.T) {
 					Name: "test-source",
 					Guidelines: []config.ProjectGuideline{
 						{
-							Name:        "test",
-							File:        "guidelines/test.md",
-							Description: "Test",
+							Name:                "test",
+							File:                "guidelines/test.md",
+							Description:         "Test",
 							ApplicableScenarios: []string{"testing"},
 						},
 					},
@@ -149,7 +154,10 @@ func TestGenerateAgentFiles(t *testing.T) {
 func TestGenerateAgentFilesWithMultipleSources(t *testing.T) {
 	tempDir := t.TempDir()
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
 
 	err := os.Chdir(tempDir)
 	require.NoError(t, err)

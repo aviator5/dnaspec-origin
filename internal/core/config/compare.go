@@ -83,8 +83,8 @@ func FindSourceByName(cfg *ProjectConfig, name string) *ProjectSource {
 // UpdateSourceInConfig updates a source in the project configuration
 // Returns an error if the source is not found
 func UpdateSourceInConfig(cfg *ProjectConfig, sourceName string, updatedSource ProjectSource) error {
-	for i, src := range cfg.Sources {
-		if src.Name == sourceName {
+	for i := range cfg.Sources {
+		if cfg.Sources[i].Name == sourceName {
 			cfg.Sources[i] = updatedSource
 			return nil
 		}

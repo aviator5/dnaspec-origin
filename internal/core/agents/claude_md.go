@@ -18,13 +18,14 @@ func GenerateClaudeMD(cfg *config.ProjectConfig) error {
 	existingContent, err := os.ReadFile("CLAUDE.md")
 	var finalContent string
 
-	if err == nil {
+	switch {
+	case err == nil:
 		// File exists, replace or append managed block
 		finalContent = files.ReplaceManagedBlock(string(existingContent), content)
-	} else if os.IsNotExist(err) {
+	case os.IsNotExist(err):
 		// File doesn't exist, create new with header
 		finalContent = files.CreateFileWithManagedBlock(content)
-	} else {
+	default:
 		return fmt.Errorf("failed to read CLAUDE.md: %w", err)
 	}
 

@@ -13,9 +13,9 @@ func ValidateGitURL(url string) error {
 		return errors.New("git URL cannot be empty")
 	}
 
-	// Only allow https:// and git@ (SSH)
-	if !strings.HasPrefix(url, "https://") && !strings.HasPrefix(url, "git@") {
-		return errors.New("only HTTPS and SSH URLs are supported (https:// or git@)")
+	// Only allow https://, git@ (SSH), and file:// (local)
+	if !strings.HasPrefix(url, "https://") && !strings.HasPrefix(url, "git@") && !strings.HasPrefix(url, "file://") {
+		return errors.New("only HTTPS, SSH (git@), and local (file://) URLs are supported")
 	}
 
 	// Reject insecure git:// protocol

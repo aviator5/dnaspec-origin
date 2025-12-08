@@ -2,8 +2,12 @@ package source
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestFetchLocalSource(t *testing.T) {
@@ -59,10 +63,14 @@ func TestFetchLocalSource(t *testing.T) {
 	t.Run("error on file instead of directory", func(t *testing.T) {
 		// Create a temp file
 		tmpFile, _ := os.CreateTemp("", "testfile")
-		defer os.Remove(tmpFile.Name())
-		tmpFile.Close()
+		defer func() {
+			err := os.Remove(tmpFile.Name())
+			require.NoError(t, err)
+		}()
+		err := tmpFile.Close()
+		require.NoError(t, err)
 
-		_, err := FetchLocalSource(tmpFile.Name())
+		_, err = FetchLocalSource(tmpFile.Name())
 		if err == nil {
 			t.Error("Expected error for file instead of directory, got nil")
 		}
@@ -83,9 +91,10 @@ func TestFetchLocalSource(t *testing.T) {
 
 		// Create invalid manifest
 		manifestPath := filepath.Join(tmpDir, "dnaspec-manifest.yaml")
-		os.WriteFile(manifestPath, []byte("invalid: [[["), 0644)
+		err := os.WriteFile(manifestPath, []byte("invalid: [[["), 0644)
+		require.NoError(t, err)
 
-		_, err := FetchLocalSource(tmpDir)
+		_, err = FetchLocalSource(tmpDir)
 		if err == nil {
 			t.Error("Expected error for invalid manifest, got nil")
 		}
@@ -123,9 +132,10 @@ guidelines:
     applicable_scenarios:
       - "test"
 `
-		os.WriteFile(manifestPath, []byte(invalidManifest), 0644)
+		err := os.WriteFile(manifestPath, []byte(invalidManifest), 0644)
+		require.NoError(t, err)
 
-		_, err := FetchLocalSource(tmpDir)
+		_, err = FetchLocalSource(tmpDir)
 		if err == nil {
 			t.Error("Expected validation error for missing guideline file, got nil")
 		}
@@ -142,16 +152,36 @@ func TestFetchGitSource_Integration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	// Create a local git repository
+	repoDir := t.TempDir()
+
+	// Initialize repo
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "test@example.com")
+	runGit(t, repoDir, "config", "user.name", "Test User")
+	// Set default branch to main to avoid confusion
+	runGit(t, repoDir, "branch", "-m", "main")
+
+	// Create manifest
+	manifestContent := `version: 1
+guidelines: []
+prompts: []
+`
+	err := os.WriteFile(filepath.Join(repoDir, "dnaspec-manifest.yaml"), []byte(manifestContent), 0644)
+	require.NoError(t, err)
+
+	// Commit
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "commit", "-m", "Initial commit")
+
+	// Get head hash
+	headHash := getGitHead(t, repoDir)
+
 	t.Run("fetch from git repository", func(t *testing.T) {
-		// Use a small test repository
-		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+		url := "file://" + repoDir
 
 		info, cleanup, err := FetchGitSource(url, "")
 		if err != nil {
-			// Skip if test repo not available
-			if os.Getenv("CI") != "true" {
-				t.Skipf("Test repository not available: %v", err)
-			}
 			t.Fatalf("FetchGitSource() error = %v", err)
 		}
 		defer cleanup()
@@ -165,8 +195,8 @@ func TestFetchGitSource_Integration(t *testing.T) {
 			t.Errorf("URL = %s, want %s", info.URL, url)
 		}
 
-		if info.Commit == "" {
-			t.Error("Expected non-empty commit hash")
+		if info.Commit != headHash {
+			t.Errorf("Commit = %s, want %s", info.Commit, headHash)
 		}
 
 		// Verify source directory exists and is temporary
@@ -185,19 +215,20 @@ func TestFetchGitSource_Integration(t *testing.T) {
 	})
 
 	t.Run("fetch with specific ref", func(t *testing.T) {
-		url := "https://github.com/aviator5/dnaspec-test-repo.git"
+		url := "file://" + repoDir
 
 		info, cleanup, err := FetchGitSource(url, "main")
 		if err != nil {
-			if os.Getenv("CI") != "true" {
-				t.Skipf("Test repository not available: %v", err)
-			}
 			t.Fatalf("FetchGitSource() error = %v", err)
 		}
 		defer cleanup()
 
 		if info.Ref != "main" {
 			t.Errorf("Ref = %s, want main", info.Ref)
+		}
+
+		if info.Commit != headHash {
+			t.Errorf("Commit = %s, want %s", info.Commit, headHash)
 		}
 	})
 
@@ -215,10 +246,16 @@ func TestFetchGitSource_Integration(t *testing.T) {
 	})
 
 	t.Run("error on missing manifest in repo", func(t *testing.T) {
-		// This would need a test repo without a manifest
-		// For now, we can test the error path with a non-DNA repo
-		url := "https://github.com/golang/example.git"
+		// Use the same local repo but delete the manifest and commit
+		// Or create a new one
+		badRepoDir := t.TempDir()
+		runGit(t, badRepoDir, "init")
+		runGit(t, badRepoDir, "config", "user.email", "test@example.com")
+		runGit(t, badRepoDir, "config", "user.name", "Test User")
+		runGit(t, badRepoDir, "branch", "-m", "main")
+		runGit(t, badRepoDir, "commit", "--allow-empty", "-m", "Empty commit")
 
+		url := "file://" + badRepoDir
 		_, cleanup, err := FetchGitSource(url, "")
 		if cleanup != nil {
 			defer cleanup()
@@ -228,4 +265,25 @@ func TestFetchGitSource_Integration(t *testing.T) {
 			t.Error("Expected error for repository without manifest, got nil")
 		}
 	})
+}
+
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\nOutput: %s", args, err, out)
+	}
+}
+
+func getGitHead(t *testing.T, dir string) string {
+	t.Helper()
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git rev-parse HEAD failed: %v", err)
+	}
+	return strings.TrimSpace(string(out))
 }

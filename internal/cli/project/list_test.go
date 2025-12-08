@@ -71,7 +71,7 @@ func TestListCommand_EmptyAgents(t *testing.T) {
 		Sources: []config.ProjectSource{
 			{
 				Name: "test-source",
-				Type: "local-dir",
+				Type: config.SourceTypeLocalPath,
 				Path: "/test/path",
 			},
 		},
@@ -122,7 +122,7 @@ func TestListCommand_SourceWithNoGuidelines(t *testing.T) {
 		Sources: []config.ProjectSource{
 			{
 				Name:       "test-source",
-				Type:       "local-dir",
+				Type:       config.SourceTypeLocalPath,
 				Path:       "/test/path",
 				Guidelines: []config.ProjectGuideline{},
 				Prompts:    []config.ProjectPrompt{},
@@ -189,7 +189,7 @@ func TestListCommand_LocalDirSource(t *testing.T) {
 		Sources: []config.ProjectSource{
 			{
 				Name: "local-source",
-				Type: "local-dir",
+				Type: config.SourceTypeLocalPath,
 				Path: "/path/to/local/dna",
 				Prompts: []config.ProjectPrompt{
 					{
@@ -239,7 +239,7 @@ func TestListCommand_MixedSourceTypes(t *testing.T) {
 			},
 			{
 				Name: "local-source",
-				Type: "local-dir",
+				Type: config.SourceTypeLocalPath,
 				Path: "/path/to/local",
 				Prompts: []config.ProjectPrompt{
 					{
@@ -319,7 +319,7 @@ func TestListCommand_Integration(t *testing.T) {
 			},
 			{
 				Name: "api-patterns",
-				Type: "local-dir",
+				Type: config.SourceTypeLocalPath,
 				Path: "/Users/me/dna/api",
 				Guidelines: []config.ProjectGuideline{
 					{

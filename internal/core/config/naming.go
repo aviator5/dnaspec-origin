@@ -20,9 +20,10 @@ func DeriveSourceName(gitURL, localPath string) string {
 
 // extractRepoName extracts the repository name from a git URL
 // Examples:
-//   https://github.com/company/dna-guidelines.git -> dna-guidelines
-//   git@github.com:company/dna.git -> dna
-//   https://github.com/company/dna -> dna
+//
+//	https://github.com/company/dna-guidelines.git -> dna-guidelines
+//	git@github.com:company/dna.git -> dna
+//	https://github.com/company/dna -> dna
 func extractRepoName(gitURL string) string {
 	// Handle SSH URLs (git@github.com:company/repo.git)
 	if strings.HasPrefix(gitURL, "git@") {

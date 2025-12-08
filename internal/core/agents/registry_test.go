@@ -52,10 +52,10 @@ func TestIsValidAgent(t *testing.T) {
 
 func TestGetAgent(t *testing.T) {
 	tests := []struct {
-		name        string
-		agentID     string
-		expectNil   bool
-		expectedID  string
+		name         string
+		agentID      string
+		expectNil    bool
+		expectedID   string
 		expectedName string
 	}{
 		{

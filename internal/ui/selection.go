@@ -3,8 +3,9 @@ package ui
 import (
 	"fmt"
 
-	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/charmbracelet/huh"
+
+	"github.com/aviator5/dnaspec/internal/core/config"
 )
 
 // SelectGuidelines presents an interactive multi-select form for choosing guidelines

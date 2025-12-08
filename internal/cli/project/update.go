@@ -58,6 +58,11 @@ and optionally adds new guidelines or reports removed ones.`,
 	return cmd
 }
 
+const (
+	addNewAll  = "all"
+	addNewNone = "none"
+)
+
 func runUpdate(flags updateFlags, args []string) error {
 	// Validate flags
 	if len(args) == 0 && !flags.all {
@@ -68,8 +73,8 @@ func runUpdate(flags updateFlags, args []string) error {
 		return fmt.Errorf("cannot specify both a source name and --all flag")
 	}
 
-	if flags.addNew != "" && flags.addNew != "all" && flags.addNew != "none" {
-		return fmt.Errorf("--add-new must be either 'all' or 'none'")
+	if flags.addNew != "" && flags.addNew != addNewAll && flags.addNew != addNewNone {
+		return fmt.Errorf("--add-new must be either '%s' or '%s'", addNewAll, addNewNone)
 	}
 
 	// Check project config exists
@@ -99,41 +104,25 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	if src == nil {
 		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Source not found:", sourceName)
 		fmt.Println("\nAvailable sources:")
-		for _, s := range cfg.Sources {
-			fmt.Printf("  - %s\n", s.Name)
+		for i := range cfg.Sources {
+			fmt.Printf("  - %s\n", cfg.Sources[i].Name)
 		}
 		return fmt.Errorf("source not found")
 	}
 
 	// Fetch latest from origin
-	var sourceInfo *source.SourceInfo
-	var cleanup func()
-	var err error
-
-	if src.Type == "git-repo" {
-		fmt.Println(ui.InfoStyle.Render("⏳ Fetching latest from"), src.URL+"...")
-		sourceInfo, cleanup, err = source.FetchGitSource(src.URL, src.Ref)
-		if err != nil {
-			return fmt.Errorf("failed to fetch git source: %w", err)
-		}
+	sourceInfo, cleanup, upToDate, err := fetchAndCheckSource(src)
+	if err != nil {
+		return err
+	}
+	if cleanup != nil {
 		defer cleanup()
-
-		// Check if commit changed
-		if sourceInfo.Commit == src.Commit {
-			fmt.Println(ui.SuccessStyle.Render("✓ Current commit:"), src.Commit[:8])
-			fmt.Println(ui.SuccessStyle.Render("✓ Already at latest commit"))
-			fmt.Println("\nAll guidelines up to date.")
-			return nil
-		}
-
+	}
+	if upToDate {
 		fmt.Println(ui.SuccessStyle.Render("✓ Current commit:"), src.Commit[:8])
-		fmt.Println(ui.SuccessStyle.Render("✓ Latest commit:"), sourceInfo.Commit[:8], ui.SubtleStyle.Render("(changed)"))
-	} else {
-		fmt.Println(ui.InfoStyle.Render("⏳ Refreshing from local directory..."))
-		sourceInfo, err = source.FetchLocalSource(src.Path)
-		if err != nil {
-			return fmt.Errorf("failed to fetch local source: %w", err)
-		}
+		fmt.Println(ui.SuccessStyle.Render("✓ Already at latest commit"))
+		fmt.Println("\nAll guidelines up to date.")
+		return nil
 	}
 
 	// Compare current vs latest
@@ -148,30 +137,7 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	}
 
 	// Handle new guidelines
-	var addedNew []string
-	if len(comparison.New) > 0 {
-		fmt.Println("\nNew guidelines available:")
-		for _, name := range comparison.New {
-			guideline := findManifestGuideline(sourceInfo.Manifest, name)
-			if guideline != nil {
-				fmt.Printf("  - %s: %s\n", name, guideline.Description)
-			}
-		}
-
-		policy := flags.addNew
-		if policy == "" {
-			// Interactive mode
-			if promptYesNo("\nAdd new guidelines?") {
-				policy = "all"
-			} else {
-				policy = "none"
-			}
-		}
-
-		if policy == "all" {
-			addedNew = comparison.New
-		}
-	}
+	addedNew := handleNewGuidelines(sourceInfo.Manifest, comparison.New, flags.addNew)
 
 	// Display removed guidelines
 	if len(comparison.Removed) > 0 {
@@ -191,6 +157,64 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 		return nil
 	}
 
+	return applyUpdate(cfg, src, sourceInfo, addedNew)
+}
+
+func fetchAndCheckSource(src *config.ProjectSource) (info *source.SourceInfo, cleanup func(), upToDate bool, err error) {
+	if src.Type == config.SourceTypeGitRepo {
+		fmt.Println(ui.InfoStyle.Render("⏳ Fetching latest from"), src.URL+"...")
+		info, cleanup, err = source.FetchGitSource(src.URL, src.Ref)
+		if err != nil {
+			return nil, nil, false, fmt.Errorf("failed to fetch git source: %w", err)
+		}
+
+		// Check if commit changed
+		if info.Commit == src.Commit {
+			return nil, cleanup, true, nil
+		}
+
+		fmt.Println(ui.SuccessStyle.Render("✓ Current commit:"), src.Commit[:8])
+		fmt.Println(ui.SuccessStyle.Render("✓ Latest commit:"), info.Commit[:8], ui.SubtleStyle.Render("(changed)"))
+		return info, cleanup, false, nil
+	}
+
+	fmt.Println(ui.InfoStyle.Render("⏳ Refreshing from local directory..."))
+	info, err = source.FetchLocalSource(src.Path)
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("failed to fetch local source: %w", err)
+	}
+	return info, nil, false, nil
+}
+
+func handleNewGuidelines(manifest *config.Manifest, newGuidelines []string, policy string) []string {
+	if len(newGuidelines) == 0 {
+		return nil
+	}
+
+	fmt.Println("\nNew guidelines available:")
+	for _, name := range newGuidelines {
+		guideline := findManifestGuideline(manifest, name)
+		if guideline != nil {
+			fmt.Printf("  - %s: %s\n", name, guideline.Description)
+		}
+	}
+
+	if policy == "" {
+		// Interactive mode
+		if promptYesNo("\nAdd new guidelines?") {
+			policy = addNewAll
+		} else {
+			policy = addNewNone
+		}
+	}
+
+	if policy == addNewAll {
+		return newGuidelines
+	}
+	return nil
+}
+
+func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInfo *source.SourceInfo, addedNew []string) error {
 	// Update guidelines in config
 	updatedSource := *src
 
@@ -231,13 +255,7 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	// Extract and update prompts
 	manifestGuidelines := make([]config.ManifestGuideline, 0, len(updatedGuidelines))
 	for _, g := range updatedGuidelines {
-		manifestGuidelines = append(manifestGuidelines, config.ManifestGuideline{
-			Name:                g.Name,
-			File:                g.File,
-			Description:         g.Description,
-			ApplicableScenarios: g.ApplicableScenarios,
-			Prompts:             g.Prompts,
-		})
+		manifestGuidelines = append(manifestGuidelines, config.ManifestGuideline(g))
 	}
 	updatedSource.Prompts = config.ExtractReferencedPrompts(manifestGuidelines, sourceInfo.Manifest.Prompts)
 
@@ -253,7 +271,7 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	}
 
 	// Update config
-	if err := config.UpdateSourceInConfig(cfg, sourceName, updatedSource); err != nil {
+	if err := config.UpdateSourceInConfig(cfg, src.Name, updatedSource); err != nil {
 		return fmt.Errorf("failed to update source in config: %w", err)
 	}
 
@@ -263,7 +281,10 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	}
 
 	fmt.Println(ui.SuccessStyle.Render("\n✓ Updated"), ui.CodeStyle.Render(projectConfigFileName))
-	fmt.Println(ui.SubtleStyle.Render("\nRun"), ui.CodeStyle.Render("dnaspec update-agents"), ui.SubtleStyle.Render("to regenerate agent files"))
+	fmt.Println(
+		ui.SubtleStyle.Render("\nRun"), ui.CodeStyle.Render("dnaspec update-agents"),
+		ui.SubtleStyle.Render("to regenerate agent files"),
+	)
 
 	return nil
 }
@@ -277,11 +298,11 @@ func updateAllSources(cfg *config.ProjectConfig, flags updateFlags) error {
 	fmt.Printf("Updating %d sources...\n\n", len(cfg.Sources))
 
 	var errors []error
-	for _, src := range cfg.Sources {
-		fmt.Printf("=== Updating %s ===\n", src.Name)
+	for i := range cfg.Sources {
+		fmt.Printf("=== Updating %s ===\n", cfg.Sources[i].Name)
 
-		if err := updateSingleSource(cfg, src.Name, flags); err != nil {
-			errors = append(errors, fmt.Errorf("%s: %w", src.Name, err))
+		if err := updateSingleSource(cfg, cfg.Sources[i].Name, flags); err != nil {
+			errors = append(errors, fmt.Errorf("%s: %w", cfg.Sources[i].Name, err))
 			fmt.Println(ui.ErrorStyle.Render("✗ Failed:"), err)
 		}
 
