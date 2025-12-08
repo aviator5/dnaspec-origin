@@ -412,6 +412,122 @@ Generated content here
 
 Content outside these markers is preserved, so you can add custom instructions alongside generated guidelines.
 
+#### `dnaspec validate`
+
+Validate the project configuration (`dnaspec.yaml`) without modifying any files.
+
+```bash
+dnaspec validate
+```
+
+This command checks:
+- **YAML syntax and schema structure**: Ensures the configuration file is valid
+- **Config version**: Verifies version is supported (currently version 1)
+- **Source fields**: Checks all sources have required fields based on type
+- **File references**: Verifies all guideline and prompt files exist in `dnaspec/` directory
+- **Agent IDs**: Validates agent IDs are recognized (claude-code, github-copilot)
+- **Duplicate names**: Checks for duplicate source names
+- **Comprehensive error reporting**: Collects and displays all errors before exiting
+
+**Example output (success):**
+```
+Validating dnaspec.yaml...
+✓ YAML syntax valid
+✓ Version 1 schema valid
+✓ 2 sources configured
+✓ All referenced files exist:
+  - dnaspec/company-dna/guidelines/go-style.md
+  - dnaspec/company-dna/guidelines/rest-api.md
+  - dnaspec/company-dna/prompts/code-review.md
+✓ All agent IDs recognized: claude-code, github-copilot
+✓ Configuration is valid
+```
+
+**Example output (errors):**
+```
+Validating dnaspec.yaml...
+✓ YAML syntax valid
+✗ Found 3 validation error(s):
+
+  • Source 'company-dna' (git-repo) missing required field: url
+  • File not found: dnaspec/company-dna/guidelines/missing.md
+  • Unknown agent ID: 'invalid-agent' (recognized: claude-code, github-copilot)
+
+Validation failed with 3 error(s)
+```
+
+**Use cases:**
+- Verify configuration before running other commands
+- Debug configuration issues
+- Check in CI/CD pipelines to catch errors early
+- Ensure all referenced files exist after cloning a repository
+
+#### `dnaspec sync`
+
+Update all DNA sources and regenerate agent files in a single non-interactive operation.
+
+```bash
+# Sync all sources and regenerate agent files
+dnaspec sync
+
+# Preview changes without writing files
+dnaspec sync --dry-run
+```
+
+This command is a convenience wrapper that:
+1. Updates all sources from their origins (equivalent to `dnaspec update --all --add-new=none`)
+2. Regenerates all agent files (equivalent to `dnaspec update-agents --no-ask`)
+3. Displays consolidated summary of all changes
+
+**Non-interactive design:**
+- Safe for CI/CD pipelines - never prompts for user input
+- Uses saved agent configuration from `dnaspec.yaml`
+- Does NOT add new guidelines automatically (uses `--add-new=none` policy)
+- Exits early if any source update fails
+
+**Flags:**
+- `--dry-run`: Preview changes without modifying files
+
+**Example output:**
+```
+Syncing all DNA sources...
+
+Updating 2 sources...
+
+=== Updating company-dna ===
+⏳ Refreshing from https://github.com/company/dna...
+✓ Updated 1 guideline
+✓ No new guidelines available
+
+=== Updating local-patterns ===
+⏳ Refreshing from local directory...
+✓ No changes (already up to date)
+
+✓ All sources updated
+
+Regenerating agent files...
+Using saved agents: [claude-code, github-copilot]
+✓ AGENTS.md
+✓ CLAUDE.md
+✓ Generated 2 Claude command(s)
+✓ Generated 2 Copilot prompt(s)
+
+✓ Sync complete
+```
+
+**When to use:**
+- In CI/CD pipelines to keep DNA guidelines up to date
+- Before starting work to ensure you have latest guidelines
+- After pulling repository changes that might affect DNA sources
+- When you want to update everything with a single command
+
+**Comparison with individual commands:**
+
+| Command | Interactive | Adds New Guidelines | Use Case |
+|---------|------------|---------------------|----------|
+| `dnaspec update --all` | Yes (prompts for new guidelines) | Optional | Manual updates with decisions |
+| `dnaspec sync` | No | Never | CI/CD, automated workflows |
+
 ### Manifest Commands
 
 Manifest commands help DNA repository maintainers create and validate manifests.
