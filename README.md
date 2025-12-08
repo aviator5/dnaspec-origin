@@ -154,6 +154,84 @@ Next steps:
   2. Run dnaspec update-agents to generate agent configuration files
 ```
 
+#### `dnaspec update`
+
+Update DNA sources from their origins (git repositories or local directories) to fetch the latest guidelines and prompts.
+
+**Update specific source:**
+```bash
+# Update a single source
+dnaspec update my-company-dna
+
+# Preview changes without writing files
+dnaspec update my-company-dna --dry-run
+
+# Add all new guidelines automatically
+dnaspec update my-company-dna --add-new=all
+
+# Skip new guidelines
+dnaspec update my-company-dna --add-new=none
+```
+
+**Update all sources:**
+```bash
+# Update all sources at once
+dnaspec update --all
+
+# Update all with automatic new guideline handling
+dnaspec update --all --add-new=all
+```
+
+This command:
+- Fetches the latest manifest from the source (git clone or local directory read)
+- Compares current configuration with latest manifest
+- Updates metadata for existing guidelines (description, scenarios, prompts)
+- Copies updated guideline and prompt files to `dnaspec/<source-name>/` directory
+- Optionally adds new guidelines (interactive by default)
+- Reports guidelines removed from source (but keeps local files)
+- Updates `dnaspec.yaml` with new commit hashes (git sources) and metadata
+
+**Flags:**
+- `--all`: Update all configured sources
+- `--dry-run`: Preview changes without modifying files
+- `--add-new <policy>`: Policy for new guidelines (`all` or `none`). If not specified, prompts interactively.
+
+**Example output:**
+```
+⏳ Fetching latest from https://github.com/company/dna...
+✓ Current commit: abc123de
+✓ Latest commit: def456ab (changed)
+
+Updated guidelines:
+  ✓ go-style (description changed)
+  ✓ rest-api (content updated)
+
+New guidelines available:
+  - go-testing: Go testing patterns
+  - go-errors: Error handling conventions
+
+Removed from source:
+  - old-guideline (no longer in manifest)
+
+Add new guidelines? [y/N]: y
+
+✓ Added go-testing
+✓ Added go-errors
+
+✓ Updated dnaspec.yaml
+
+Run 'dnaspec update-agents' to regenerate agent files
+```
+
+**When sources are up to date:**
+```
+⏳ Fetching latest from https://github.com/company/dna...
+✓ Current commit: abc123de
+✓ Already at latest commit
+
+All guidelines up to date.
+```
+
 #### `dnaspec update-agents`
 
 Generate or update AI agent configuration files based on selected DNA guidelines.

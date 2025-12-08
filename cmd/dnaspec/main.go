@@ -13,6 +13,7 @@ func main() {
 	rootCmd.AddCommand(manifest.NewManifestCmd())
 	rootCmd.AddCommand(project.NewInitCmd())
 	rootCmd.AddCommand(project.NewAddCmd())
+	rootCmd.AddCommand(project.NewUpdateCmd())
 	rootCmd.AddCommand(project.NewUpdateAgentsCmd())
 
 	if err := rootCmd.Execute(); err != nil {
