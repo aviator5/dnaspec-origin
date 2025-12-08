@@ -93,6 +93,13 @@
 - [x] 11.6 Verify output formatting and colors in terminal
 - [x] 11.7 Verify all error messages are clear and helpful
 
+## 12. Documentation
+
+- [x] 12.1 Update README.md with list command usage
+- [x] 12.2 Add list command to Commands section
+- [x] 12.3 Include example output for list command
+- [x] 12.4 Document list command behavior when dnaspec.yaml is missing
+
 ## Notes
 
 - Follow existing command patterns from internal/cli/project/init.go

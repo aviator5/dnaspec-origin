@@ -16,6 +16,7 @@ func main() {
 	rootCmd.AddCommand(project.NewUpdateCmd())
 	rootCmd.AddCommand(project.NewUpdateAgentsCmd())
 	rootCmd.AddCommand(project.NewListCmd())
+	rootCmd.AddCommand(project.NewRemoveCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
