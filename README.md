@@ -154,6 +154,106 @@ Next steps:
   2. Run dnaspec update-agents to generate agent configuration files
 ```
 
+#### `dnaspec remove`
+
+Remove a DNA source from your project configuration. This command safely removes the source from `dnaspec.yaml`, deletes the source directory and all guideline files, and cleans up generated agent files (Claude commands and Copilot prompts).
+
+**Basic usage:**
+```bash
+# Remove a source with confirmation prompt
+dnaspec remove company-dna
+
+# Remove a source without confirmation
+dnaspec remove company-dna --force
+```
+
+This command:
+- Shows what will be deleted (config entry, source directory, generated agent files)
+- Prompts for confirmation before deletion (unless `--force` is used)
+- Removes the source entry from `dnaspec.yaml`
+- Deletes the `dnaspec/<source-name>/` directory
+- Cleans up generated Claude command files (`.claude/commands/dnaspec/<source-name>-*.md`)
+- Cleans up generated Copilot prompt files (`.github/prompts/dnaspec-<source-name>-*.prompt.md`)
+- Handles missing files gracefully (idempotent operation)
+
+**Flags:**
+- `--force`, `-f`: Skip confirmation prompt
+
+**Example output:**
+```
+The following will be deleted:
+  - dnaspec.yaml entry for 'company-dna'
+  - dnaspec/company-dna/ directory (5 guidelines, 3 prompts)
+  - .claude/commands/dnaspec/company-dna-*.md (3 files)
+  - .github/prompts/dnaspec-company-dna-*.prompt.md (2 files)
+
+This cannot be undone. Continue? [y/N]: y
+
+✓ Success: Removed source company-dna
+  Cleaned up 5 file(s)
+
+Next steps:
+  Run dnaspec update-agents to regenerate AGENTS.md
+```
+
+**Error handling:**
+- If the source doesn't exist, shows available sources
+- If config file is missing, suggests running `dnaspec init`
+- If file deletion fails, provides clear error messages
+
+#### `dnaspec list`
+
+View the current DNA configuration for your project, showing all configured agents, sources, guidelines, and prompts.
+
+```bash
+dnaspec list
+```
+
+This command:
+- Loads and displays the `dnaspec.yaml` configuration file
+- Shows configured AI agents (Phase 1: Claude Code, GitHub Copilot)
+- Lists all DNA sources with their type-specific metadata
+- Displays guidelines and prompts for each source
+- Provides a quick overview of your project's DNA setup
+
+**Example output:**
+```
+Configured Agents (Phase 1):
+  - claude-code
+  - github-copilot
+
+Sources:
+
+company-dna (git-repo)
+  URL: https://github.com/company/dna-guidelines
+  Ref: v1.2.0
+  Commit: abc123def456789...
+  Guidelines:
+    - go-style: Go coding style conventions
+    - rest-api: REST API design principles
+  Prompts:
+    - code-review: Review Go code for style compliance
+    - api-review: Review API designs
+
+local-patterns (local-dir)
+  Path: /Users/me/my-dna-patterns
+  Guidelines:
+    - error-handling: Error handling patterns
+```
+
+**When no configuration exists:**
+```
+✗ Error: dnaspec.yaml not found
+
+Run 'dnaspec init' to create a new configuration file.
+```
+
+**Use cases:**
+- Verify which DNA sources are currently active
+- Check which guidelines are available before running code reviews
+- Confirm agent configuration before running `dnaspec update-agents`
+- Debug configuration issues
+
 #### `dnaspec update`
 
 Update DNA sources from their origins (git repositories or local directories) to fetch the latest guidelines and prompts.
