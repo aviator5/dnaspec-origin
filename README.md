@@ -22,7 +22,12 @@ dnaspec init
 dnaspec add --git-repo https://github.com/company/dna-guidelines
 ```
 
-3. Or add from a local directory:
+3. Configure AI agents to use your guidelines:
+```bash
+dnaspec update-agents
+```
+
+4. Or add from a local directory:
 ```bash
 dnaspec add /path/to/local/dna-guidelines
 ```
@@ -149,6 +154,86 @@ Next steps:
   2. Run dnaspec update-agents to generate agent configuration files
 ```
 
+#### `dnaspec update-agents`
+
+Generate or update AI agent configuration files based on selected DNA guidelines.
+
+```bash
+# Interactive mode - select which agents to configure
+dnaspec update-agents
+
+# Non-interactive mode - use saved agent configuration
+dnaspec update-agents --no-ask
+```
+
+This command:
+- Shows an interactive checklist of available AI agents (Claude Code, GitHub Copilot)
+- Saves your agent selection to `dnaspec.yaml`
+- Generates agent-specific integration files based on your DNA guidelines
+- Updates managed blocks while preserving custom content outside those blocks
+
+**Generated Files:**
+
+**AGENTS.md** (always):
+- Contains references to all guidelines with their applicable scenarios
+- Format: `@/dnaspec/<source-name>/<file>` with scenario bullet points
+- Uses managed blocks (`<!-- DNASPEC:START/END -->`) that can be safely regenerated
+
+**CLAUDE.md** (if Claude Code selected):
+- Same content as AGENTS.md
+- Enables Claude Code to discover project-specific instructions
+
+**Claude Commands** (if Claude Code selected):
+- `.claude/commands/dnaspec/<source-name>-<prompt-name>.md`
+- Slash commands for guideline-based code reviews and tasks
+- Includes frontmatter with name, description, category, and tags
+
+**Copilot Prompts** (if GitHub Copilot selected):
+- `.github/prompts/dnaspec-<source-name>-<prompt-name>.prompt.md`
+- Prompts for guideline-based assistance
+- Includes `$ARGUMENTS` placeholder for context
+
+**Flags:**
+- `--no-ask`: Use saved agent configuration without prompting (useful for CI/CD)
+
+**Example output:**
+```
+Select AI agents to configure:
+  [x] Claude Code
+  [x] GitHub Copilot
+
+→ Generating agent configuration files...
+✓ Created AGENTS.md
+✓ Created CLAUDE.md
+✓ Created .claude/commands/dnaspec/dna-guidelines-code-review.md
+✓ Created .claude/commands/dnaspec/dna-guidelines-documentation.md
+✓ Created .github/prompts/dnaspec-dna-guidelines-code-review.prompt.md
+✓ Created .github/prompts/dnaspec-dna-guidelines-documentation.prompt.md
+
+Agent configuration updated successfully!
+
+Your AI assistants can now access your DNA guidelines:
+  • Claude Code: Type / and search for "dnaspec" commands
+  • GitHub Copilot: Use GitHub Copilot Chat with dnaspec prompts
+```
+
+**When to run:**
+- After adding new DNA sources with `dnaspec add`
+- After changing which agents you want to use
+- After updating guidelines in your DNA sources (with `--no-ask` flag)
+
+**Managed Blocks:**
+
+The command uses managed block markers to safely update generated content:
+
+```markdown
+<!-- DNASPEC:START -->
+Generated content here
+<!-- DNASPEC:END -->
+```
+
+Content outside these markers is preserved, so you can add custom instructions alongside generated guidelines.
+
 ### Manifest Commands
 
 Manifest commands help DNA repository maintainers create and validate manifests.
@@ -255,7 +340,7 @@ sources:
 
 **Top-level:**
 - `version`: Must be `1`
-- `agents`: List of AI agents to generate configuration for (optional)
+- `agents`: List of AI agents to generate configuration for (values: `"claude-code"`, `"github-copilot"`)
 - `sources`: List of DNA sources added to this project
 
 **Source (git-repo type):**
@@ -469,6 +554,37 @@ dnaspec add --git-repo https://github.com/company/dna --name company-dna-v2
   git clone https://github.com/company/dna /tmp/dna
   dnaspec add /tmp/dna
   ```
+
+#### "no sources configured"
+
+**Problem:** You ran `dnaspec update-agents` but haven't added any DNA sources yet.
+
+**Solution:** Add at least one DNA source first:
+```bash
+dnaspec add --git-repo https://github.com/company/dna-guidelines
+```
+
+#### "failed to create directory"
+
+**Problem:** Unable to create agent configuration directories (`.claude/commands/`, `.github/prompts/`).
+
+**Solutions:**
+- **Permission denied**: Check that you have write permissions in the current directory
+- **Path conflicts**: Ensure no files exist with the same names as the directories
+- **Disk full**: Ensure you have sufficient disk space
+
+#### "managed block corrupted"
+
+**Problem:** The managed block markers in AGENTS.md or CLAUDE.md are incomplete or malformed.
+
+**Solution:**
+- Manually fix the markers to ensure they appear in pairs:
+  ```markdown
+  <!-- DNASPEC:START -->
+  ...content...
+  <!-- DNASPEC:END -->
+  ```
+- Or delete the file and run `dnaspec update-agents` again to regenerate it
 
 ### Manifest Commands
 
