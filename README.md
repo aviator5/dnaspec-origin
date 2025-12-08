@@ -84,65 +84,7 @@ Claude Code:
 - **Easy Distribution**: Add guidelines to any project with `dnaspec add <repo>`
 - **AI Integration**: Automatically generate files for Claude Code, GitHub Copilot, and future AI tools
 - **Stay Updated**: Pull latest guidelines with `dnaspec update`
-- **Multi-Source Support**: Combine guidelines from multiple repositories (company-wide, team-specific, personal)
-
-### Multiple DNA Sources
-
-DNASpec supports adding guidelines from **multiple sources** to a single project. This allows you to combine:
-
-- **Company-wide standards**: Shared across all organization projects
-- **Team-specific patterns**: Tailored to your team's tech stack and practices
-- **Personal guidelines**: Your own best practices and experimental patterns
-- **Open-source DNA**: Community-maintained guidelines from public repositories
-
-Each source is independently versioned and updated, giving you fine-grained control over which guidelines apply to your project.
-
-**Example multi-source setup:**
-
-```mermaid
-graph TB
-    subgraph "DNA Sources"
-        S1[Company DNA<br/>github.com/company/dna<br/><i>Go, REST, Security</i>]
-        S2[Team DNA<br/>github.com/team/patterns<br/><i>Microservices, Postgres</i>]
-        S3[Personal DNA<br/>~/my-dna<br/><i>Experimental patterns</i>]
-    end
-
-    subgraph "Your Project"
-        C[dnaspec.yaml<br/><i>tracks all sources</i>]
-        G1[dnaspec/company-dna/<br/>guidelines & prompts]
-        G2[dnaspec/team-patterns/<br/>guidelines & prompts]
-        G3[dnaspec/personal/<br/>guidelines & prompts]
-    end
-
-    subgraph "AI Agents"
-        A[Claude Code<br/>GitHub Copilot<br/><i>access all guidelines</i>]
-    end
-
-    S1 --> C
-    S2 --> C
-    S3 --> C
-    C --> G1
-    C --> G2
-    C --> G3
-    G1 --> A
-    G2 --> A
-    G3 --> A
-
-    style S1 fill:#e3f2fd
-    style S2 fill:#e1f5ff
-    style S3 fill:#f1f8e9
-    style C fill:#fff3e0
-    style G1 fill:#fce4ec
-    style G2 fill:#f3e5f5
-    style G3 fill:#e8f5e9
-    style A fill:#c8e6c9
-```
-
-**Benefits:**
-- **Separation of concerns**: Keep company, team, and personal guidelines independent
-- **Independent updates**: Update each source on its own schedule
-- **No conflicts**: Source names act as namespaces (e.g., `company-dna-review` vs `team-patterns-review`)
-- **Flexible composition**: Mix and match guidelines based on project needs
+- **Multi-Source Support**: Combine guidelines from multiple repositories (see Multiple DNA Sources below)
 
 ## Supported AI Agents
 
@@ -225,6 +167,64 @@ graph TB
     style A2 fill:#c8e6c9
     style A3 fill:#c8e6c9
 ```
+
+## Multiple DNA Sources
+
+DNASpec supports adding guidelines from **multiple sources** to a single project. This allows you to combine:
+
+- **Company-wide standards**: Shared across all organization projects
+- **Team-specific patterns**: Tailored to your team's tech stack and practices
+- **Personal guidelines**: Your own best practices and experimental patterns
+- **Open-source DNA**: Community-maintained guidelines from public repositories
+
+Each source is independently versioned and updated, giving you fine-grained control over which guidelines apply to your project.
+
+**Example multi-source setup:**
+
+```mermaid
+graph TB
+    subgraph "DNA Sources"
+        S1[Company DNA<br/>github.com/company/dna<br/><i>Go, REST, Security</i>]
+        S2[Team DNA<br/>github.com/team/patterns<br/><i>Microservices, Postgres</i>]
+        S3[Personal DNA<br/>~/my-dna<br/><i>Experimental patterns</i>]
+    end
+
+    subgraph "Your Project"
+        C[dnaspec.yaml<br/><i>tracks all sources</i>]
+        G1[dnaspec/company-dna/<br/>guidelines & prompts]
+        G2[dnaspec/team-patterns/<br/>guidelines & prompts]
+        G3[dnaspec/personal/<br/>guidelines & prompts]
+    end
+
+    subgraph "AI Agents"
+        A[Claude Code<br/>GitHub Copilot<br/><i>access all guidelines</i>]
+    end
+
+    S1 --> C
+    S2 --> C
+    S3 --> C
+    C --> G1
+    C --> G2
+    C --> G3
+    G1 --> A
+    G2 --> A
+    G3 --> A
+
+    style S1 fill:#e3f2fd
+    style S2 fill:#e1f5ff
+    style S3 fill:#f1f8e9
+    style C fill:#fff3e0
+    style G1 fill:#fce4ec
+    style G2 fill:#f3e5f5
+    style G3 fill:#e8f5e9
+    style A fill:#c8e6c9
+```
+
+**Benefits:**
+- **Separation of concerns**: Keep company, team, and personal guidelines independent
+- **Independent updates**: Update each source on its own schedule
+- **No conflicts**: Source names act as namespaces (e.g., `company-dna-review` vs `team-patterns-review`)
+- **Flexible composition**: Mix and match guidelines based on project needs
 
 ## Quick Start
 
