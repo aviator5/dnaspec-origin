@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.24', '1.25']
+        go-version: ['1.25']
+    env:
+      GOTOOLCHAIN: local
     
     steps:
       - name: Checkout code
