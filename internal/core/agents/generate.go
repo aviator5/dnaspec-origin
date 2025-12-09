@@ -9,11 +9,14 @@ import (
 
 // GenerationSummary contains counts of generated files
 type GenerationSummary struct {
-	AgentsMD       bool
-	ClaudeMD       bool
-	ClaudeCommands int
-	CopilotPrompts int
-	Errors         []error
+	AgentsMD          bool
+	ClaudeMD          bool
+	ClaudeCommands    int
+	CopilotPrompts    int
+	AntigravityPrompts int
+	WindsurfWorkflows int
+	CursorCommands    int
+	Errors            []error
 }
 
 // GenerateAgentFiles generates all agent integration files based on config and selected agents
@@ -33,6 +36,12 @@ func GenerateAgentFiles(cfg *config.ProjectConfig, agents []string) (*Generation
 	hasClaudeCode := contains(agents, "claude-code")
 	// Check if GitHub Copilot is selected
 	hasCopilot := contains(agents, "github-copilot")
+	// Check if Antigravity is selected
+	hasAntigravity := contains(agents, "antigravity")
+	// Check if Windsurf is selected
+	hasWindsurf := contains(agents, "windsurf")
+	// Check if Cursor is selected
+	hasCursor := contains(agents, "cursor")
 
 	// Generate CLAUDE.md if Claude Code is selected
 	if hasClaudeCode {
@@ -49,23 +58,8 @@ func GenerateAgentFiles(cfg *config.ProjectConfig, agents []string) (*Generation
 		sourceDir := filepath.Join("dnaspec", source.Name)
 
 		for _, prompt := range source.Prompts {
-			// Generate Claude command if Claude Code is selected
-			if hasClaudeCode {
-				if err := GenerateClaudeCommand(source.Name, prompt, sourceDir); err != nil {
-					summary.Errors = append(summary.Errors, fmt.Errorf("failed to generate Claude command for %s/%s: %w", source.Name, prompt.Name, err))
-				} else {
-					summary.ClaudeCommands++
-				}
-			}
-
-			// Generate Copilot prompt if GitHub Copilot is selected
-			if hasCopilot {
-				if err := GenerateCopilotPrompt(source.Name, prompt, sourceDir); err != nil {
-					summary.Errors = append(summary.Errors, fmt.Errorf("failed to generate Copilot prompt for %s/%s: %w", source.Name, prompt.Name, err))
-				} else {
-					summary.CopilotPrompts++
-				}
-			}
+			generatePromptFiles(source.Name, prompt, sourceDir, summary,
+				hasClaudeCode, hasCopilot, hasAntigravity, hasWindsurf, hasCursor)
 		}
 	}
 
@@ -75,6 +69,65 @@ func GenerateAgentFiles(cfg *config.ProjectConfig, agents []string) (*Generation
 	}
 
 	return summary, nil
+}
+
+// generatePromptFiles generates prompt files for a single prompt across all selected agents
+func generatePromptFiles(sourceName string, prompt config.ProjectPrompt, sourceDir string,
+	summary *GenerationSummary, hasClaudeCode, hasCopilot, hasAntigravity, hasWindsurf, hasCursor bool) {
+	// Generate Claude command if Claude Code is selected
+	if hasClaudeCode {
+		if err := GenerateClaudeCommand(sourceName, prompt, sourceDir); err != nil {
+			summary.Errors = append(summary.Errors,
+				fmt.Errorf("failed to generate Claude command for %s/%s: %w",
+					sourceName, prompt.Name, err))
+		} else {
+			summary.ClaudeCommands++
+		}
+	}
+
+	// Generate Copilot prompt if GitHub Copilot is selected
+	if hasCopilot {
+		if err := GenerateCopilotPrompt(sourceName, prompt, sourceDir); err != nil {
+			summary.Errors = append(summary.Errors,
+				fmt.Errorf("failed to generate Copilot prompt for %s/%s: %w",
+					sourceName, prompt.Name, err))
+		} else {
+			summary.CopilotPrompts++
+		}
+	}
+
+	// Generate Antigravity prompt if Antigravity is selected
+	if hasAntigravity {
+		if err := GenerateAntigravityPrompt(sourceName, prompt, sourceDir); err != nil {
+			summary.Errors = append(summary.Errors,
+				fmt.Errorf("failed to generate Antigravity prompt for %s/%s: %w",
+					sourceName, prompt.Name, err))
+		} else {
+			summary.AntigravityPrompts++
+		}
+	}
+
+	// Generate Windsurf workflow if Windsurf is selected
+	if hasWindsurf {
+		if err := GenerateWindsurfPrompt(sourceName, prompt, sourceDir); err != nil {
+			summary.Errors = append(summary.Errors,
+				fmt.Errorf("failed to generate Windsurf workflow for %s/%s: %w",
+					sourceName, prompt.Name, err))
+		} else {
+			summary.WindsurfWorkflows++
+		}
+	}
+
+	// Generate Cursor command if Cursor is selected
+	if hasCursor {
+		if err := GenerateCursorCommand(sourceName, prompt, sourceDir); err != nil {
+			summary.Errors = append(summary.Errors,
+				fmt.Errorf("failed to generate Cursor command for %s/%s: %w",
+					sourceName, prompt.Name, err))
+		} else {
+			summary.CursorCommands++
+		}
+	}
 }
 
 // contains checks if a string slice contains a value

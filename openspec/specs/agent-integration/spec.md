@@ -8,7 +8,6 @@ Enable AI coding assistants (Claude Code, GitHub Copilot) to discover and use DN
 
 - **manifest-management**: Ensures applicable_scenarios field is populated and validated
 - **project-management**: Provides dnaspec.yaml structure and ProjectConfig data model
-
 ## Requirements
 ### Requirement: Agent Selection and Configuration
 
@@ -17,28 +16,11 @@ The system SHALL provide a `dnaspec update-agents` command that allows users to 
 #### Scenario: Interactive agent selection
 
 - **WHEN** user runs `dnaspec update-agents` without flags
-- **THEN** display checklist of available agents (claude-code, github-copilot)
+- **THEN** display checklist of available agents (antigravity, claude-code, cursor, github-copilot, windsurf) in alphabetical order
 - **AND** show currently selected agents as checked
 - **AND** allow multi-select with keyboard navigation
 - **AND** save selected agents to dnaspec.yaml agents array
 - **AND** proceed to file generation
-
-#### Scenario: Non-interactive mode with saved configuration
-
-- **WHEN** user runs `dnaspec update-agents --no-ask` and agents are configured in dnaspec.yaml
-- **THEN** use saved agent selection without prompting
-- **AND** proceed to file generation
-
-#### Scenario: Non-interactive mode without configuration
-
-- **WHEN** user runs `dnaspec update-agents --no-ask` and no agents configured in dnaspec.yaml
-- **THEN** exit with error "No agents configured. Run without --no-ask to select agents."
-
-#### Scenario: No sources configured
-
-- **WHEN** user runs `dnaspec update-agents` and dnaspec.yaml has empty sources array
-- **THEN** display message "No DNA sources configured. Run 'dnaspec add' to add guidelines first."
-- **AND** exit gracefully
 
 ### Requirement: AGENTS.md Generation with Managed Blocks
 
@@ -170,15 +152,10 @@ The system SHALL display a summary of generated files after successful completio
   - "✓ Updated CLAUDE.md" (if Claude selected)
   - "✓ Generated X Claude commands" (if Claude selected)
   - "✓ Generated X Copilot prompts" (if Copilot selected)
+  - "✓ Generated X Antigravity prompts" (if Antigravity selected)
+  - "✓ Generated X Windsurf workflows" (if Windsurf selected)
+  - "✓ Generated X Cursor commands" (if Cursor selected)
 - **AND** display success message
-
-#### Scenario: Report errors with partial success
-
-- **WHEN** some files fail to generate but others succeed
-- **THEN** display successful file count
-- **AND** display error messages for failed files
-- **AND** continue processing remaining files
-- **AND** exit with non-zero code
 
 ### Requirement: Managed Block Marker Format
 
@@ -213,4 +190,87 @@ The system SHALL provide clear error messages when prerequisites are missing.
 - **THEN** display error with file path and reason
 - **AND** continue processing other files
 - **AND** exit with non-zero code
+
+### Requirement: Antigravity Agent Support
+
+The system SHALL generate prompt files for Antigravity when selected.
+
+#### Scenario: Generate Antigravity prompt for prompt
+
+- **WHEN** "antigravity" is selected and source has prompt
+- **THEN** create `.agent/workflows/dnaspec-<source-name>-<prompt-name>.md`
+- **AND** include frontmatter with description field
+- **AND** wrap prompt content in managed block markers (`<!-- DNASPEC:START -->` and `<!-- DNASPEC:END -->`)
+- **AND** create directory structure if missing
+
+#### Scenario: Source namespacing in Antigravity prompts
+
+- **WHEN** multiple sources have prompts with same name
+- **THEN** each generates separate file with source name in filename
+- **AND** files do not overwrite each other
+
+#### Scenario: Skip Antigravity prompts when not selected
+
+- **WHEN** "antigravity" is not selected
+- **THEN** do not generate Antigravity prompt files
+
+### Requirement: Windsurf Agent Support
+
+The system SHALL generate prompt files for Windsurf when selected with auto-execution configuration.
+
+#### Scenario: Generate Windsurf prompt for prompt
+
+- **WHEN** "windsurf" is selected and source has prompt
+- **THEN** create `.windsurf/workflows/dnaspec-<source-name>-<prompt-name>.md`
+- **AND** include frontmatter with description field
+- **AND** include frontmatter with `auto_execution_mode: 3` field
+- **AND** wrap prompt content in managed block markers (`<!-- DNASPEC:START -->` and `<!-- DNASPEC:END -->`)
+- **AND** create directory structure if missing
+
+#### Scenario: Source namespacing in Windsurf prompts
+
+- **WHEN** multiple sources have prompts with same name
+- **THEN** each generates separate file with source name in filename
+- **AND** files do not overwrite each other
+
+#### Scenario: Skip Windsurf prompts when not selected
+
+- **WHEN** "windsurf" is not selected
+- **THEN** do not generate Windsurf prompt files
+
+### Requirement: Cursor Agent Support
+
+The system SHALL generate command files for Cursor when selected with complete metadata.
+
+#### Scenario: Generate Cursor command for prompt
+
+- **WHEN** "cursor" is selected and source has prompt
+- **THEN** create `.cursor/commands/dnaspec-<source-name>-<prompt-name>.md`
+- **AND** include frontmatter with name field formatted as `/dnaspec-<source-name>-<prompt-name>`
+- **AND** include frontmatter with id field matching prompt filename without extension
+- **AND** include frontmatter with category field set to "DNASpec"
+- **AND** include frontmatter with description field
+- **AND** wrap prompt content in managed block markers (`<!-- DNASPEC:START -->` and `<!-- DNASPEC:END -->`)
+- **AND** create directory structure if missing
+
+#### Scenario: Source namespacing in Cursor commands
+
+- **WHEN** multiple sources have prompts with same name
+- **THEN** each generates separate file with source name in filename
+- **AND** files do not overwrite each other
+
+#### Scenario: Skip Cursor commands when not selected
+
+- **WHEN** "cursor" is not selected
+- **THEN** do not generate Cursor command files
+
+### Requirement: Alphabetical Agent Display
+
+The system SHALL display available agents in alphabetical order by display name.
+
+#### Scenario: Agent list sorted alphabetically
+
+- **WHEN** user runs `dnaspec update-agents` without flags
+- **THEN** display agent selection list sorted alphabetically by display name
+- **AND** maintain consistent ordering across all invocations
 

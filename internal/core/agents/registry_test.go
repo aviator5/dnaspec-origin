@@ -9,9 +9,13 @@ import (
 func TestGetAvailableAgents(t *testing.T) {
 	agents := GetAvailableAgents()
 
-	assert.Len(t, agents, 2, "Should return 2 phase 1 agents")
-	assert.Equal(t, "claude-code", agents[0].ID)
-	assert.Equal(t, "github-copilot", agents[1].ID)
+	assert.Len(t, agents, 5, "Should return 5 supported agents")
+	// Verify agents are in alphabetical order by ID
+	assert.Equal(t, "antigravity", agents[0].ID)
+	assert.Equal(t, "claude-code", agents[1].ID)
+	assert.Equal(t, "cursor", agents[2].ID)
+	assert.Equal(t, "github-copilot", agents[3].ID)
+	assert.Equal(t, "windsurf", agents[4].ID)
 }
 
 func TestIsValidAgent(t *testing.T) {
@@ -21,13 +25,28 @@ func TestIsValidAgent(t *testing.T) {
 		expected bool
 	}{
 		{
+			name:     "valid antigravity",
+			agentID:  "antigravity",
+			expected: true,
+		},
+		{
 			name:     "valid claude-code",
 			agentID:  "claude-code",
 			expected: true,
 		},
 		{
+			name:     "valid cursor",
+			agentID:  "cursor",
+			expected: true,
+		},
+		{
 			name:     "valid github-copilot",
 			agentID:  "github-copilot",
+			expected: true,
+		},
+		{
+			name:     "valid windsurf",
+			agentID:  "windsurf",
 			expected: true,
 		},
 		{
