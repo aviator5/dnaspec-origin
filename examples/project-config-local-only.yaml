@@ -1,12 +1,13 @@
 # Local-only DNASpec project configuration
-# This example shows a project using DNA guidelines from a local directory only
+# This example shows a project using DNA guidelines from a local directory
+# Note: Local paths should be relative to the project root for portability
 
 version: 1
 
 sources:
   - name: "my-patterns"
-    type: "local"
-    path: "/Users/me/my-dna-patterns"
+    type: "local-path"
+    path: "shared-dna"  # Relative path to project root
     guidelines:
       - name: "typescript-style"
         file: "guidelines/typescript-style.md"

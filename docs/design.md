@@ -74,7 +74,7 @@ Example: `dna-review` prompt - "Review code against DNA guidelines"
 
 DNA repositories or local directories containing guidelines and prompts. Each source has:
 - **Name**: Human-readable identifier (e.g., `my-company-dna`)
-- **Type**: `git-repo` or `local-dir`
+- **Type**: `git-repo` or `local-path`
 - **Location**: Git URL + ref or filesystem path
 - **Commit/Path**: Tracking information
 - **Guidelines**: Selected guidelines from this source
@@ -155,7 +155,7 @@ agents:
 # DNA sources
 sources:
   - name: "my-company-dna"          # Human-readable source name
-    type: "git-repo"                # or "local-dir"
+    type: "git-repo"                # or "local-path"
     url: "https://github.com/company/dna"
     ref: "v1.2.0"                   # Git tag or branch
     commit: "abc123def456789..."    # Resolved commit hash
@@ -179,13 +179,32 @@ sources:
         description: "Review Go code against go-style guideline"
 
   - name: "api-patterns"
-    type: "local-dir"
-    path: "/Users/me/dna/api"
-    symlinked: false              # true if added with --symlink
-    subdir: "patterns"            # Optional: subdirectory within path
+    type: "local-path"
+    path: "shared-dna"            # Relative to project root (recommended)
+    # Absolute paths work but will show warnings in 'dnaspec validate'
     guidelines: [...]
     prompts: [...]
 ```
+
+**Local Path Handling**:
+
+DNASpec stores local source paths as **relative to the project root** for portability:
+
+- **Relative paths (recommended)**: `path: "shared-dna"` or `path: "packages/common/dna"`
+  - Works on any machine where the project is checked out
+  - Safe for version control
+  - Validates that path stays within project directory
+
+- **Absolute paths**: `path: "/Users/me/dna"`
+  - Only works on the original machine
+  - All commands work silently with absolute paths (no warnings during normal use)
+  - `dnaspec validate` shows **warnings** for absolute paths (backward compatible)
+  - Auto-converts to relative during `dnaspec update` when possible (silently keeps absolute if outside project)
+
+**Path Outside Project Warning**:
+When using `dnaspec add` with a local path outside the project directory, DNASpec shows a warning and prompts for confirmation **before** loading the source or parsing the manifest. This prevents wasted time if you decide to cancel. This is the **only** command that warns about paths - all other commands operate silently.
+
+**Migration**: Run `dnaspec update <source-name>` to automatically convert absolute paths to relative paths when the source is within the project directory. Use `dnaspec validate` to find sources that need updating.
 
 **Monorepo Support**: The optional `subdir` field allows DNA repositories to be stored in subdirectories of larger monorepos. When `subdir` is set, DNASpec expects `dnaspec-manifest.yaml` to be located under that subdirectory within the repository or local path.
 
@@ -393,7 +412,11 @@ flowchart TD
 
 1. **Fetch Source**:
    - Git: Clone to `/tmp/dnaspec/<url-hash>/` at specified ref
-   - Local: Read from specified path
+   - Local: **Early path validation** - check if path is outside project directory
+     - If outside: Show warning and prompt for confirmation **before** loading source
+     - If cancelled: Exit without parsing manifest (saves time)
+     - If confirmed: Proceed with absolute path
+   - Read from specified path
 
 2. **Parse Manifest**:
    - Read `dnaspec-manifest.yaml`
@@ -451,8 +474,19 @@ dnaspec add --git-repo https://github.com/company/dna --git-ref v1.2.0
 # Add with custom name
 dnaspec add --git-repo https://github.com/company/dna --name company-dna
 
-# Add from local directory
-dnaspec add /Users/me/dna/patterns
+# Add from local directory (inside project - uses relative path)
+dnaspec add ./shared/dna
+
+# Add from local directory (outside project - shows early warning)
+dnaspec add /Users/me/external-dna
+# ⚠ Warning: Local source is outside project directory
+#   Project: /Users/me/myproject
+#   Source: /Users/me/external-dna
+#
+# This absolute path won't work on other machines.
+# Consider moving the source into your project directory.
+#
+# Continue with absolute path? (y/N):
 
 # Add local with custom name
 dnaspec add ./dna --name my-patterns
@@ -825,8 +859,8 @@ my-company-dna (git-repo)
   Prompts:
     - go-style-code-review: Review Go code against go-style guideline
 
-api-patterns (local-dir)
-  Path: /Users/me/dna/api
+api-patterns (local-path)
+  Path: shared-dna/api-patterns (relative to project root)
 
   Guidelines:
     - rest-best-practices: REST API best practices
@@ -851,18 +885,20 @@ dnaspec validate
 - Validate YAML syntax and schema
 - Check all file references exist
 - Verify agent IDs are recognized
-- Check for symlinked sources with missing paths
-- Display errors or success message
-- Exit with error code on validation failure
+- Check for symlinked sources with missing paths (warning only)
+- **Warn about absolute paths** in local-path sources (backward compatible)
+- Display errors, warnings, or success message
+- Exit with error code only if validation errors found (warnings don't fail)
 
 **Validation Checks**:
 - ✓ YAML syntax valid
 - ✓ Config version supported (currently 1)
-- ✓ All sources have required fields
-- ✓ All referenced files exist in `dnaspec/` directory
-- ✓ Agent IDs are recognized (claude-code, github-copilot)
-- ✓ No duplicate source names
-- ⚠ Warning for symlinked sources with missing target paths
+- ✓ All sources have required fields (errors on missing fields)
+- ✓ All referenced files exist in `dnaspec/` directory (errors on missing files)
+- ✓ Agent IDs are recognized (errors on unknown agents)
+- ✓ No duplicate source names (errors on duplicates)
+- ⚠ **Warning** for absolute paths in local-path sources (use `dnaspec update <source>` to fix)
+- ⚠ Warning for symlinked sources with missing target paths (warning only, doesn't fail)
 
 **Example Output (Success)**:
 ```
@@ -887,10 +923,27 @@ Validating dnaspec.yaml...
 ✗ Error: File not found: dnaspec/company-dna/guidelines/missing.md
 ✗ Error: Unknown agent ID: 'invalid-agent'
 ✗ Error: Source 'team-patterns' missing required field: path
-✗ Warning: Source 'experimental' has symlinked=true but path '/Users/me/old-dna' doesn't exist
 
-Validation failed with 3 errors, 1 warning
+Validation failed with 3 errors
 ```
+
+**Example Output (With Warnings)**:
+```
+Validating dnaspec.yaml...
+✓ YAML syntax valid
+✓ Version 1 schema valid
+✓ 2 sources configured
+✓ All referenced files exist:
+  - dnaspec/experimental/guidelines/pattern.md
+
+⚠ Found 1 warning(s):
+  - Source 'experimental' uses absolute path: /Users/me/external/dna
+    Run 'dnaspec update experimental' to auto-convert, or manually edit dnaspec.yaml
+
+✓ Configuration is valid (with warnings)
+```
+
+**Note**: Warnings don't fail validation, only errors do. Configuration passes validation even with warnings.
 
 ---
 
@@ -1604,12 +1657,12 @@ Config:
 
 Source:
     name: string
-    type: string ("git-repo" or "local-dir")
+    type: string ("git-repo" or "local-path")
     url: string (optional, for git-repo)
     ref: string (optional, for git-repo)
     commit: string (optional, for git-repo)
-    path: string (optional, for local-dir)
-    symlinked: boolean (optional, for local-dir, indicates symlink mode)
+    path: string (optional, for local-path)
+    symlinked: boolean (optional, for local-path, indicates symlink mode)
     subdir: string (optional, subdirectory path within repo/path for monorepo support)
     guidelines: list of Guideline
     prompts: list of Prompt
@@ -1676,6 +1729,33 @@ Implementation:
 - Use filepath.Clean() to normalize paths
 - Reject any path that doesn't start with "guidelines/" or "prompts/"
 ```
+
+### Local Path Security
+
+**Threat**: Local sources could reference paths outside the project directory
+
+**Mitigation**:
+
+1. **Relative Paths (Recommended)**:
+   - Store paths relative to project root for portability
+   - Validate that paths stay within project directory
+   - Automatically convert absolute to relative when possible
+
+2. **Early Warning for External Paths**:
+   - When adding local source outside project, show warning **before** loading source
+   - Require explicit user confirmation to proceed
+   - Saves time by not loading manifest if user cancels
+   - Only command that shows path warnings
+
+3. **Validation Warnings**:
+   - `dnaspec validate` shows **warnings** for absolute paths (backward compatible)
+   - Provides actionable guidance: "Run 'dnaspec update <source>' to auto-convert"
+   - Doesn't fail validation, maintains backward compatibility
+
+4. **Auto-Migration**:
+   - `dnaspec update` automatically converts absolute to relative when possible
+   - Only for paths within project directory
+   - External paths silently kept absolute (caught by validate)
 
 **Example Validation**:
 ```go
@@ -2043,7 +2123,7 @@ dnaspec add --git-repo https://github.com/company/dna --name company
 # Add team-specific patterns
 dnaspec add --git-repo https://github.com/team/patterns --name team
 
-# Add personal experimental guidelines
+# Add personal experimental guidelines (shows early warning if outside project)
 dnaspec add ~/my-dna --name experimental
 
 # Update agents
@@ -2099,8 +2179,9 @@ sources:
         description: "Review architecture"
 
   - name: "experimental"
-    type: "local-dir"
-    path: "/Users/me/my-dna"
+    type: "local-path"
+    path: "local/my-dna"  # Relative path (recommended)
+    # Absolute paths work but will show warnings in 'dnaspec validate'
     guidelines:
       - name: "new-pattern"
         file: "guidelines/new-pattern.md"
@@ -2320,3 +2401,18 @@ prompts:
 - Remove ".." from paths
 - Use `guidelines/foo.md` not `../foo.md` or `/absolute/path`
 - Run `dnaspec manifest validate` to check
+
+**Problem**: Warning about absolute path when adding local source
+
+**Solution**:
+- The warning appears **before** parsing the manifest to save time
+- **Recommended**: Move the DNA source inside your project directory, then retry
+- **Alternative**: Confirm to use absolute path (only works on your machine)
+- After adding, run `dnaspec update <source>` to attempt conversion to relative path
+
+**Problem**: Validation warnings about absolute paths
+
+**Solution**:
+- Run `dnaspec update <source>` to automatically convert to relative path (if possible)
+- If source is outside project directory, consider moving it inside
+- Warnings don't fail validation but should be fixed for portability

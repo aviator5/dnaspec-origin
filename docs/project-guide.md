@@ -303,7 +303,7 @@ company-dna (git-repo)
     - code-review: Review Go code for style compliance
     - api-review: Review API designs
 
-local-patterns (local-dir)
+local-patterns (local-path)
   Path: /Users/me/my-dna-patterns
   Guidelines:
     - error-handling: Error handling patterns
@@ -609,7 +609,7 @@ agents:
 
 sources:
   - name: "company-dna"          # Human-readable source name
-    type: "git-repo"                # or "local-dir"
+    type: "git-repo"                # or "local-path"
     url: "https://github.com/company/dna-guidelines"
     ref: "v1.2.0"                   # Git tag or branch
     commit: "abc123def456789..."    # Resolved commit hash
@@ -627,7 +627,7 @@ sources:
         description: "Review Go code"
 
   - name: "local-patterns"
-    type: "local"
+    type: "local-path"
     path: "/Users/me/my-dna-patterns"
     guidelines:
       - name: "error-handling"

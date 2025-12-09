@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/aviator5/dnaspec/internal/core/paths"
 	"gopkg.in/yaml.v3"
 )
 
@@ -59,6 +62,9 @@ func LoadProjectConfig(path string) (*ProjectConfig, error) {
 		return nil, err
 	}
 
+	// Note: Absolute path validation is handled by 'dnaspec validate' command
+	// We don't warn here to avoid noise in every command
+
 	return &config, nil
 }
 
@@ -87,4 +93,20 @@ func AtomicWriteProjectConfig(path string, config *ProjectConfig) error {
 
 	// Atomic rename
 	return os.Rename(tmpFile, path)
+}
+
+// MigrateToRelativePaths converts absolute paths to relative paths in-place.
+// Returns error if any conversion fails.
+func (c *ProjectConfig) MigrateToRelativePaths(projectRoot string) error {
+	for i := range c.Sources {
+		source := &c.Sources[i]
+		if source.Type == SourceTypeLocalPath && filepath.IsAbs(source.Path) {
+			relPath, err := paths.MakeRelative(projectRoot, source.Path)
+			if err != nil {
+				return fmt.Errorf("source %s: %w", source.Name, err)
+			}
+			source.Path = relPath
+		}
+	}
+	return nil
 }

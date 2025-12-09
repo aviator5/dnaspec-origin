@@ -29,7 +29,7 @@
 - [x] 4.2 Display "Sources:" header with blank line separator
 - [x] 4.3 For each source, display name with type in parentheses (e.g., "my-company-dna (git-repo)")
 - [x] 4.4 For git-repo sources, display URL, Ref, and Commit fields with proper indentation
-- [x] 4.5 For local-dir sources, display Path field with proper indentation
+- [x] 4.5 For local-path sources, display Path field with proper indentation
 - [x] 4.6 Handle empty sources array with appropriate message
 - [x] 4.7 Verify output matches design doc format (docs/design.md lines 816-820)
 
@@ -71,7 +71,7 @@
 - [x] 9.5 Test source with no guidelines
 - [x] 9.6 Test source with no prompts
 - [x] 9.7 Test git-repo source displays URL, Ref, Commit
-- [x] 9.8 Test local-dir source displays Path
+- [x] 9.8 Test local-path source displays Path
 - [x] 9.9 Test mixed source types (git and local)
 - [x] 9.10 Run tests with "go test ./internal/cli/project/" and verify all pass
 
