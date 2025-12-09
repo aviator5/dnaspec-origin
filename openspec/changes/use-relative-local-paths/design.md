@@ -255,8 +255,8 @@ for _, source := range config.Sources {
         if filepath.IsAbs(source.Path) {
             warnings = append(warnings, fmt.Sprintf(
                 "Source '%s' uses absolute path: %s\n" +
-                "    Run 'dnaspec update %s' to auto-convert, or manually edit dnaspec.yaml",
-                source.Name, source.Path, source.Name,
+                "    Consider manually editing dnaspec.yaml to use a relative path",
+                source.Name, source.Path,
             ))
         } else {
             // Validate relative path resolves within project

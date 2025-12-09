@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/aviator5/dnaspec/internal/core/agents"
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/core/paths"
 	"github.com/aviator5/dnaspec/internal/ui"
@@ -23,7 +24,7 @@ This command checks:
 - Config version is supported (currently version 1)
 - All sources have required fields
 - File references exist in dnaspec/ directory (guidelines and prompts)
-- Agent IDs are recognized (claude-code, github-copilot)
+- Agent IDs are recognized
 - No duplicate source names
 - Symlinked sources with missing paths (warning only)`,
 		Example: `  # Validate the project configuration
@@ -37,17 +38,8 @@ This command checks:
 }
 
 func runValidate() error {
-	// Check if config exists
-	if _, err := os.Stat(projectConfigFileName); os.IsNotExist(err) {
-		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), ui.CodeStyle.Render(projectConfigFileName), "not found")
-		fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"), ui.SubtleStyle.Render("first to initialize a project"))
-		return fmt.Errorf("project configuration not found")
-	}
-
-	// Load the configuration
-	cfg, err := config.LoadProjectConfig(projectConfigFileName)
+	cfg, err := loadAndCheckConfig()
 	if err != nil {
-		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Failed to load configuration:", err)
 		return err
 	}
 
@@ -59,22 +51,50 @@ func runValidate() error {
 	var validatedFiles []string
 
 	// Validate config version
-	if cfg.Version != 1 {
-		errors = append(errors, fmt.Sprintf("Unsupported config version: %d (only version 1 is supported)", cfg.Version))
-	} else {
-		fmt.Println(ui.SuccessStyle.Render("✓"), "YAML syntax valid")
-		fmt.Println(ui.SuccessStyle.Render("✓"), "Version 1 schema valid")
-	}
-
-	// Track source names for duplicate detection
-	sourceNames := make(map[string]bool)
+	errors = validateConfigVersion(cfg, errors)
 
 	// Validate sources
 	fmt.Printf(ui.SuccessStyle.Render("✓")+" %d sources configured\n", len(cfg.Sources))
+	errors, warnings, validatedFiles = validateAllSources(cfg.Sources, errors, warnings, validatedFiles)
 
-	for i := range cfg.Sources {
-		src := &cfg.Sources[i]
-		// Check for duplicate source names
+	// Validate agent IDs
+	errors = validateAgentIDs(cfg.Agents, errors)
+
+	// Report results
+	return reportValidationResults(errors, warnings, validatedFiles)
+}
+
+func loadAndCheckConfig() (*config.ProjectConfig, error) {
+	if _, err := os.Stat(projectConfigFileName); os.IsNotExist(err) {
+		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), ui.CodeStyle.Render(projectConfigFileName), "not found")
+		fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"), ui.SubtleStyle.Render("first to initialize a project"))
+		return nil, fmt.Errorf("project configuration not found")
+	}
+
+	cfg, err := config.LoadProjectConfig(projectConfigFileName)
+	if err != nil {
+		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Failed to load configuration:", err)
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func validateConfigVersion(cfg *config.ProjectConfig, errors []string) []string {
+	if cfg.Version != 1 {
+		return append(errors, fmt.Sprintf("Unsupported config version: %d (only version 1 is supported)", cfg.Version))
+	}
+	fmt.Println(ui.SuccessStyle.Render("✓"), "YAML syntax valid")
+	fmt.Println(ui.SuccessStyle.Render("✓"), "Version 1 schema valid")
+	return errors
+}
+
+func validateAllSources(
+	sources []config.ProjectSource,
+	errors, warnings, validatedFiles []string,
+) (outErrors, outWarnings, outValidatedFiles []string) {
+	sourceNames := make(map[string]bool)
+	for i := range sources {
+		src := &sources[i]
 		if sourceNames[src.Name] {
 			errors = append(errors, fmt.Sprintf("Duplicate source name: '%s'", src.Name))
 		}
@@ -85,57 +105,64 @@ func runValidate() error {
 		warnings = append(warnings, sourceWarnings...)
 		validatedFiles = append(validatedFiles, sourceFiles...)
 	}
+	return errors, warnings, validatedFiles
+}
 
-	// Validate agent IDs
-	recognizedAgents := map[string]bool{
-		"claude-code":    true,
-		"github-copilot": true,
+func validateAgentIDs(agentIDs []string, errors []string) []string {
+	availableAgents := agents.GetAvailableAgents()
+	recognizedAgents := make(map[string]bool, len(availableAgents))
+	agentNames := make([]string, 0, len(availableAgents))
+	for _, agent := range availableAgents {
+		recognizedAgents[agent.ID] = true
+		agentNames = append(agentNames, agent.ID)
 	}
 
-	for _, agentID := range cfg.Agents {
+	for _, agentID := range agentIDs {
 		if !recognizedAgents[agentID] {
-			errors = append(errors, fmt.Sprintf("Unknown agent ID: '%s' (recognized: claude-code, github-copilot)", agentID))
+			errors = append(errors, fmt.Sprintf("Unknown agent ID: '%s' (recognized: %s)", agentID, formatList(agentNames)))
 		}
 	}
 
-	if len(cfg.Agents) > 0 {
-		fmt.Println(ui.SuccessStyle.Render("✓"), "All agent IDs recognized:", formatList(cfg.Agents))
+	if len(agentIDs) > 0 {
+		fmt.Println(ui.SuccessStyle.Render("✓"), "All agent IDs recognized:", formatList(agentIDs))
 	}
+	return errors
+}
 
-	// Report results
+func reportValidationResults(errors, warnings, validatedFiles []string) error {
 	if len(errors) == 0 {
-		// Success case
-		fmt.Println(ui.SuccessStyle.Render("✓"), "All referenced files exist:")
-		for _, file := range validatedFiles {
-			fmt.Println("  -", ui.CodeStyle.Render(file))
-		}
-
-		// Display warnings if any
-		if len(warnings) > 0 {
-			fmt.Println()
-			fmt.Println(ui.WarningStyle.Render("⚠"), "Found", len(warnings), "warning(s):")
-			for _, warning := range warnings {
-				fmt.Println("  -", warning)
-			}
-		}
-
-		fmt.Println()
-		if len(warnings) > 0 {
-			fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid (with warnings)"))
-		} else {
-			fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid"))
-		}
+		printSuccessResults(validatedFiles, warnings)
 		return nil
 	}
 
-	// Failure case
 	fmt.Println()
 	fmt.Println(ui.ErrorStyle.Render("✗"), "Validation found", len(errors), "errors:")
 	for _, err := range errors {
 		fmt.Println("  -", err)
 	}
-
 	return fmt.Errorf("validation failed")
+}
+
+func printSuccessResults(validatedFiles, warnings []string) {
+	fmt.Println(ui.SuccessStyle.Render("✓"), "All referenced files exist:")
+	for _, file := range validatedFiles {
+		fmt.Println("  -", ui.CodeStyle.Render(file))
+	}
+
+	if len(warnings) > 0 {
+		fmt.Println()
+		fmt.Println(ui.WarningStyle.Render("⚠"), "Found", len(warnings), "warning(s):")
+		for _, warning := range warnings {
+			fmt.Println("  -", warning)
+		}
+	}
+
+	fmt.Println()
+	if len(warnings) > 0 {
+		fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid (with warnings)"))
+	} else {
+		fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid"))
+	}
 }
 
 func validateSource(src *config.ProjectSource) (errors []string, warnings []string, validatedFiles []string) {
@@ -164,8 +191,8 @@ func validateSource(src *config.ProjectSource) (errors []string, warnings []stri
 			if filepath.IsAbs(src.Path) {
 				warnings = append(warnings, fmt.Sprintf(
 					"Source '%s' uses absolute path: %s\n"+
-						"    Run 'dnaspec update %s' to auto-convert, or manually edit dnaspec.yaml",
-					src.Name, src.Path, src.Name,
+						"    Consider manually editing dnaspec.yaml to use a relative path",
+					src.Name, src.Path,
 				))
 			} else {
 				// Validate relative path resolves within project
