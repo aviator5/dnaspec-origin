@@ -4,6 +4,10 @@
 
 DNASpec is a CLI tool for managing DNA (Development Norms & Architecture) guidelines across projects. It distributes reusable development patterns from centralized repositories and makes them available to AI coding assistants like Claude Code and GitHub Copilot.
 
+<p align="center">
+  <img src="docs/dnaspec.png" alt="DNASpec preview" width="90%">
+</p>
+
 ## What are DNA Guidelines?
 
 DNA guidelines are reusable development patterns, architectural principles, and best practices that can be shared across multiple projects. They help teams:
