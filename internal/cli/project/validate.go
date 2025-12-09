@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/aviator5/dnaspec/internal/core/config"
+	"github.com/aviator5/dnaspec/internal/core/paths"
 	"github.com/aviator5/dnaspec/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -52,9 +53,9 @@ func runValidate() error {
 
 	fmt.Println(ui.InfoStyle.Render("Validating"), ui.CodeStyle.Render(projectConfigFileName)+"...")
 
-	// Collect all validation errors
+	// Collect all validation errors and warnings
 	var errors []string
-
+	var warnings []string
 	var validatedFiles []string
 
 	// Validate config version
@@ -79,8 +80,9 @@ func runValidate() error {
 		}
 		sourceNames[src.Name] = true
 
-		sourceErrors, sourceFiles := validateSource(src)
+		sourceErrors, sourceWarnings, sourceFiles := validateSource(src)
 		errors = append(errors, sourceErrors...)
+		warnings = append(warnings, sourceWarnings...)
 		validatedFiles = append(validatedFiles, sourceFiles...)
 	}
 
@@ -107,8 +109,22 @@ func runValidate() error {
 		for _, file := range validatedFiles {
 			fmt.Println("  -", ui.CodeStyle.Render(file))
 		}
+
+		// Display warnings if any
+		if len(warnings) > 0 {
+			fmt.Println()
+			fmt.Println(ui.WarningStyle.Render("⚠"), "Found", len(warnings), "warning(s):")
+			for _, warning := range warnings {
+				fmt.Println("  -", warning)
+			}
+		}
+
 		fmt.Println()
-		fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid"))
+		if len(warnings) > 0 {
+			fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid (with warnings)"))
+		} else {
+			fmt.Println(ui.SuccessStyle.Render("✓ Configuration is valid"))
+		}
 		return nil
 	}
 
@@ -122,7 +138,7 @@ func runValidate() error {
 	return fmt.Errorf("validation failed")
 }
 
-func validateSource(src *config.ProjectSource) (errors []string, validatedFiles []string) {
+func validateSource(src *config.ProjectSource) (errors []string, warnings []string, validatedFiles []string) {
 	// Check required fields based on source type
 	if src.Name == "" {
 		errors = append(errors, "Source missing required field: name")
@@ -143,6 +159,26 @@ func validateSource(src *config.ProjectSource) (errors []string, validatedFiles 
 	case config.SourceTypeLocalPath:
 		if src.Path == "" {
 			errors = append(errors, fmt.Sprintf("Source '%s' (%s) missing required field: path", src.Name, config.SourceTypeLocalPath))
+		} else {
+			// Warn on absolute paths (not error - maintains backward compatibility)
+			if filepath.IsAbs(src.Path) {
+				warnings = append(warnings, fmt.Sprintf(
+					"Source '%s' uses absolute path: %s\n"+
+						"    Run 'dnaspec update %s' to auto-convert, or manually edit dnaspec.yaml",
+					src.Name, src.Path, src.Name,
+				))
+			} else {
+				// Validate relative path resolves within project
+				projectRoot, err := filepath.Abs(filepath.Dir(projectConfigFileName))
+				if err != nil {
+					errors = append(errors, fmt.Sprintf("Failed to resolve project root: %v", err))
+				} else if err := paths.ValidateLocalPath(projectRoot, src.Path); err != nil {
+					errors = append(errors, fmt.Sprintf(
+						"Source '%s' path validation failed: %v",
+						src.Name, err,
+					))
+				}
+			}
 		}
 	}
 
@@ -166,7 +202,7 @@ func validateSource(src *config.ProjectSource) (errors []string, validatedFiles 
 		}
 	}
 
-	return errors, validatedFiles
+	return errors, warnings, validatedFiles
 }
 
 // Helper function to format list

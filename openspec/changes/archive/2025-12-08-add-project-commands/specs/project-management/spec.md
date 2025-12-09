@@ -227,7 +227,7 @@ The system SHALL update `dnaspec.yaml` with source metadata after successfully a
 #### Scenario: Add local source to configuration
 
 - **WHEN** local source is successfully added
-- **THEN** append source entry with type "local-dir", path, guidelines, and prompts
+- **THEN** append source entry with type "local-path", path, guidelines, and prompts
 - **AND** write updated configuration atomically
 
 #### Scenario: Preserve existing configuration

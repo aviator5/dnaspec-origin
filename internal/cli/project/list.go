@@ -3,6 +3,7 @@ package project
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -105,7 +106,12 @@ func displaySources(cfg *config.ProjectConfig) {
 				fmt.Printf("  Commit: %s\n", commitDisplay)
 			}
 		case config.SourceTypeLocalPath:
-			fmt.Printf("  Path: %s\n", source.Path)
+			// Display path with indicator for absolute vs relative
+			if filepath.IsAbs(source.Path) {
+				fmt.Printf("  Path: %s %s\n", source.Path, ui.SubtleStyle.Render("(absolute)"))
+			} else {
+				fmt.Printf("  Path: %s %s\n", source.Path, ui.SubtleStyle.Render("(relative)"))
+			}
 		}
 
 		// Display guidelines

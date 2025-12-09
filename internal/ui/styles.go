@@ -15,6 +15,11 @@ var (
 			Foreground(lipgloss.Color("9")).
 			Bold(true)
 
+	// WarningStyle is for warning messages
+	WarningStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")).
+			Bold(true)
+
 	// InfoStyle is for informational messages
 	InfoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("12"))

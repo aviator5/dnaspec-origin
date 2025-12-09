@@ -9,6 +9,7 @@ import (
 
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/core/files"
+	"github.com/aviator5/dnaspec/internal/core/paths"
 	"github.com/aviator5/dnaspec/internal/core/source"
 	"github.com/aviator5/dnaspec/internal/ui"
 	"github.com/spf13/cobra"
@@ -178,8 +179,24 @@ func fetchAndCheckSource(src *config.ProjectSource) (info *source.SourceInfo, cl
 		return info, cleanup, false, nil
 	}
 
+	// Local path source
 	fmt.Println(ui.InfoStyle.Render("⏳ Refreshing from local directory..."))
-	info, err = source.FetchLocalSource(src.Path)
+
+	// Resolve relative path if necessary
+	sourcePath := src.Path
+	if !filepath.IsAbs(src.Path) {
+		projectRoot, err := filepath.Abs(filepath.Dir(projectConfigFileName))
+		if err != nil {
+			return nil, nil, false, fmt.Errorf("failed to resolve project root: %w", err)
+		}
+		absPath, resolveErr := paths.ResolveRelative(projectRoot, src.Path)
+		if resolveErr != nil {
+			return nil, nil, false, fmt.Errorf("failed to resolve relative path %s: %w", src.Path, resolveErr)
+		}
+		sourcePath = absPath
+	}
+
+	info, err = source.FetchLocalSource(sourcePath)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("failed to fetch local source: %w", err)
 	}
@@ -262,6 +279,22 @@ func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInf
 	// Update commit hash for git sources
 	if src.Type == "git-repo" {
 		updatedSource.Commit = sourceInfo.Commit
+	}
+
+	// Auto-migrate absolute paths to relative for local sources
+	if src.Type == config.SourceTypeLocalPath && filepath.IsAbs(src.Path) {
+		projectRoot, err := filepath.Abs(filepath.Dir(projectConfigFileName))
+		if err != nil {
+			return fmt.Errorf("failed to resolve project root: %w", err)
+		}
+		relPath, err := paths.MakeRelative(projectRoot, src.Path)
+		if err == nil {
+			// Successfully converted to relative path
+			updatedSource.Path = relPath
+			fmt.Println(ui.SuccessStyle.Render("✓ Converted to relative path:"), relPath)
+		}
+		// If path is outside project, silently keep absolute path
+		// (dnaspec validate will report the error)
 	}
 
 	// Copy files

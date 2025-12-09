@@ -230,7 +230,7 @@ The system SHALL update `dnaspec.yaml` with source metadata after successfully a
 #### Scenario: Add local source to configuration
 
 - **WHEN** local source is successfully added
-- **THEN** append source entry with type "local-dir", path, guidelines, and prompts
+- **THEN** append source entry with type "local-path", path, guidelines, and prompts
 - **AND** write updated configuration atomically
 
 #### Scenario: Preserve existing configuration
@@ -339,7 +339,7 @@ The system SHALL provide a `dnaspec list` command that displays all configured D
 - **AND** display "Sources:" header
 - **AND** for each source, display source name with type in parentheses
 - **AND** for git-repo sources, display URL, Ref, and Commit fields
-- **AND** for local-dir sources, display Path field
+- **AND** for local-path sources, display Path field
 - **AND** for each source, display "Guidelines:" section with indented list of guidelines (name: description)
 - **AND** for each source, display "Prompts:" section with indented list of prompts (name: description)
 - **AND** exit with code 0
@@ -386,7 +386,7 @@ The system SHALL provide a `dnaspec list` command that displays all configured D
 
 #### Scenario: Display multiple sources of different types
 
-- **WHEN** configuration contains both git-repo and local-dir sources
+- **WHEN** configuration contains both git-repo and local-path sources
 - **THEN** display each source with appropriate type-specific fields
 - **AND** maintain consistent formatting across all sources
 - **AND** display sources in order they appear in configuration

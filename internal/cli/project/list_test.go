@@ -183,7 +183,7 @@ func TestListCommand_LocalDirSource(t *testing.T) {
 	defer os.Chdir(origDir)
 	os.Chdir(tmpDir)
 
-	// Create configuration with local-dir source
+	// Create configuration with local-path source
 	cfg := &config.ProjectConfig{
 		Version: 1,
 		Sources: []config.ProjectSource{
@@ -218,7 +218,7 @@ func TestListCommand_MixedSourceTypes(t *testing.T) {
 	defer os.Chdir(origDir)
 	os.Chdir(tmpDir)
 
-	// Create configuration with both git-repo and local-dir sources
+	// Create configuration with both git-repo and local-path sources
 	cfg := &config.ProjectConfig{
 		Version: 1,
 		Agents:  []string{"claude-code"},

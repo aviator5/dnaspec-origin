@@ -9,6 +9,7 @@ import (
 
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/core/files"
+	"github.com/aviator5/dnaspec/internal/core/paths"
 	"github.com/aviator5/dnaspec/internal/core/source"
 	"github.com/aviator5/dnaspec/internal/ui"
 )
@@ -74,29 +75,22 @@ func runAdd(flags addFlags, args []string) error {
 		return err
 	}
 
-	// Check project config exists
-	if _, err := os.Stat(projectConfigFileName); os.IsNotExist(err) {
-		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "No project configuration found")
-		fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"), ui.SubtleStyle.Render("first to initialize a project"))
-		return fmt.Errorf("project not initialized")
-	}
-
-	// Load project config
-	cfg, err := config.LoadProjectConfig(projectConfigFileName)
+	cfg, err := loadProjectConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load project config: %w", err)
+		return err
 	}
 
-	// Fetch source
-	sourceInfo, cleanup, err := fetchSource(flags, args)
+	// For local paths, check if outside project and confirm BEFORE loading source
+	if err := checkLocalPathBeforeLoad(flags, args); err != nil {
+		return err
+	}
+
+	sourceInfo, cleanup, err := fetchAndLoadSource(flags, args)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
-	fmt.Println(ui.SuccessStyle.Render("✓"), "Source loaded successfully")
-
-	// Select guidelines
 	selectedGuidelines, err := selectGuidelines(flags, sourceInfo)
 	if err != nil {
 		return err
@@ -107,7 +101,49 @@ func runAdd(flags addFlags, args []string) error {
 		return nil
 	}
 
-	// Derive source name
+	newSource, err := buildSourceEntry(flags, sourceInfo, selectedGuidelines, cfg)
+	if err != nil {
+		return err
+	}
+
+	if flags.dryRun {
+		printDryRun(newSource)
+		return nil
+	}
+
+	return addSourceToProject(cfg, newSource, sourceInfo, selectedGuidelines)
+}
+
+func loadProjectConfig() (*config.ProjectConfig, error) {
+	if _, err := os.Stat(projectConfigFileName); os.IsNotExist(err) {
+		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "No project configuration found")
+		fmt.Println(ui.SubtleStyle.Render("  Run"), ui.CodeStyle.Render("dnaspec init"), ui.SubtleStyle.Render("first to initialize a project"))
+		return nil, fmt.Errorf("project not initialized")
+	}
+
+	cfg, err := config.LoadProjectConfig(projectConfigFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load project config: %w", err)
+	}
+	return cfg, nil
+}
+
+func fetchAndLoadSource(flags addFlags, args []string) (*source.SourceInfo, func(), error) {
+	sourceInfo, cleanup, err := fetchSource(flags, args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fmt.Println(ui.SuccessStyle.Render("✓"), "Source loaded successfully")
+	return sourceInfo, cleanup, nil
+}
+
+func buildSourceEntry(
+	flags addFlags,
+	sourceInfo *source.SourceInfo,
+	selectedGuidelines []config.ManifestGuideline,
+	cfg *config.ProjectConfig,
+) (config.ProjectSource, error) {
 	sourceName := flags.name
 	if sourceName == "" {
 		sourceName = config.DeriveSourceName(sourceInfo.URL, sourceInfo.Path)
@@ -116,52 +152,51 @@ func runAdd(flags addFlags, args []string) error {
 	// Check for duplicate source name
 	for i := range cfg.Sources {
 		if cfg.Sources[i].Name == sourceName {
-			return fmt.Errorf("source with name '%s' already exists, use --name to specify a different name", sourceName)
+			return config.ProjectSource{}, fmt.Errorf("source with name '%s' already exists, use --name to specify a different name", sourceName)
 		}
 	}
 
-	// Extract referenced prompts
 	selectedPrompts := config.ExtractReferencedPrompts(selectedGuidelines, sourceInfo.Manifest.Prompts)
 
-	// Build source entry
-	newSource := config.ProjectSource{
+	pathToStore, err := convertToRelativePath(sourceInfo)
+	if err != nil {
+		return config.ProjectSource{}, err
+	}
+
+	return config.ProjectSource{
 		Name:       sourceName,
 		Type:       sourceInfo.SourceType,
 		URL:        sourceInfo.URL,
-		Path:       sourceInfo.Path,
+		Path:       pathToStore,
 		Ref:        sourceInfo.Ref,
 		Commit:     sourceInfo.Commit,
 		Guidelines: config.ManifestGuidelinesToProject(selectedGuidelines),
 		Prompts:    selectedPrompts,
-	}
+	}, nil
+}
 
-	// Preview mode
-	if flags.dryRun {
-		printDryRun(newSource)
-		return nil
-	}
-
-	// Copy files
-	destDir := filepath.Join("dnaspec", sourceName)
+func addSourceToProject(
+	cfg *config.ProjectConfig,
+	newSource config.ProjectSource,
+	sourceInfo *source.SourceInfo,
+	selectedGuidelines []config.ManifestGuideline,
+) error {
+	destDir := filepath.Join("dnaspec", newSource.Name)
 	fmt.Println(ui.InfoStyle.Render("⏳ Copying files to"), ui.CodeStyle.Render(destDir))
 
 	if err := files.CopyGuidelineFiles(sourceInfo.SourceDir, destDir, selectedGuidelines, sourceInfo.Manifest.Prompts); err != nil {
 		return fmt.Errorf("failed to copy files: %w", err)
 	}
 
-	// Update config
 	if err := config.AddSource(cfg, newSource); err != nil {
 		return fmt.Errorf("failed to add source: %w", err)
 	}
 
-	// Save config
 	if err := config.AtomicWriteProjectConfig(projectConfigFileName, cfg); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
-	// Success message
 	printSuccess(newSource, destDir)
-
 	return nil
 }
 
@@ -236,6 +271,80 @@ func printDryRun(newSource config.ProjectSource) {
 	}
 	fmt.Println("  Guidelines:", len(newSource.Guidelines))
 	fmt.Println("  Prompts:", len(newSource.Prompts))
+}
+
+func convertToRelativePath(sourceInfo *source.SourceInfo) (string, error) {
+	pathToStore := sourceInfo.Path
+
+	// Only convert local paths
+	if sourceInfo.SourceType != config.SourceTypeLocalPath || sourceInfo.Path == "" {
+		return pathToStore, nil
+	}
+
+	// Get absolute path to project root (where dnaspec.yaml is located)
+	projectRoot, err := filepath.Abs(filepath.Dir(projectConfigFileName))
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve project root: %w", err)
+	}
+
+	absPath, err := filepath.Abs(sourceInfo.Path)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve path: %w", err)
+	}
+
+	relPath, err := paths.MakeRelative(projectRoot, absPath)
+	if err != nil {
+		// Path is outside project - keep absolute path
+		return absPath, nil
+	}
+
+	// Use relative path
+	return relPath, nil
+}
+
+func checkLocalPathBeforeLoad(flags addFlags, args []string) error {
+	// Only check for local paths (when no git-repo flag)
+	if flags.gitRepo != "" || len(args) == 0 {
+		return nil
+	}
+
+	localPath := args[0]
+
+	// Get absolute path to project root
+	projectRoot, err := filepath.Abs(filepath.Dir(projectConfigFileName))
+	if err != nil {
+		return fmt.Errorf("failed to resolve project root: %w", err)
+	}
+
+	absPath, err := filepath.Abs(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve path: %w", err)
+	}
+
+	// Check if path is outside project
+	_, err = paths.MakeRelative(projectRoot, absPath)
+	if err == nil {
+		// Path is inside project - all good
+		return nil
+	}
+
+	// Path is outside project - warn user
+	fmt.Println()
+	fmt.Println(ui.WarningStyle.Render("⚠ Warning:"), "Local source is outside project directory")
+	fmt.Println("  Project:", projectRoot)
+	fmt.Println("  Source:", absPath)
+	fmt.Println()
+	fmt.Println(ui.SubtleStyle.Render("This absolute path won't work on other machines."))
+	fmt.Println(ui.SubtleStyle.Render("Consider moving the source into your project directory."))
+	fmt.Println()
+
+	// Ask for confirmation (auto-accept in non-interactive mode)
+	nonInteractive := flags.all || len(flags.guidelines) > 0
+	if !nonInteractive && !ui.Confirm("Continue with absolute path?") {
+		return fmt.Errorf("canceled by user")
+	}
+
+	return nil
 }
 
 func printSuccess(newSource config.ProjectSource, destDir string) {

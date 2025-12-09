@@ -40,10 +40,10 @@ sources:
         file: "prompts/api-review.md"
         description: "API review checklist"
 
-  # Team-specific patterns from local directory
+  # Team-specific patterns from local directory (relative path)
   - name: "team-patterns"
-    type: "local"
-    path: "/Users/dev/team-dna-patterns"
+    type: "local-path"
+    path: "team-dna"  # Relative to project root
     guidelines:
       - name: "error-handling"
         file: "guidelines/error-handling.md"
