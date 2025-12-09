@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/aviator5/dnaspec/actions/workflows/ci.yml/badge.svg)](https://github.com/aviator5/dnaspec/actions/workflows/ci.yml)
 
-DNASpec is a CLI tool for managing DNA (Development & Architecture) guidelines across projects. It distributes reusable development patterns from centralized repositories and makes them available to AI coding assistants like Claude Code and GitHub Copilot.
+DNASpec is a CLI tool for managing DNA (Development Norms & Architecture) guidelines across projects. It distributes reusable development patterns from centralized repositories and makes them available to AI coding assistants like Claude Code and GitHub Copilot.
 
 ## What are DNA Guidelines?
 
@@ -133,39 +133,31 @@ graph TB
     end
 
     subgraph "Generated Files"
-        M[AGENTS.md<br/>CLAUDE.md]
-        C[.claude/commands/<br/>slash commands]
-        GP[.github/prompts/<br/>copilot prompts]
-    end
-
-    subgraph "AI Agents"
-        A1[Claude Code]
-        A2[GitHub Copilot]
-        A3[Future Agents]
+        M[AGENTS.md<br/><i>all agents</i>]
+        CC[Claude Code:<br/>CLAUDE.md<br/>.claude/commands/]
+        GC[GitHub Copilot:<br/>.github/prompts/]
+        CR[Cursor:<br/>.cursor/commands/]
+        OA[Other agents:<br/>.agent/workflows/<br/>.windsurf/workflows/]
     end
 
     S1 --> D
     S2 --> D
     D --> G
     G --> M
-    G --> C
-    G --> GP
-    M --> A1
-    M --> A2
-    M --> A3
-    C --> A1
-    GP --> A2
+    G --> CC
+    G --> GC
+    G --> CR
+    G --> OA
 
     style S1 fill:#e3f2fd
     style S2 fill:#e3f2fd
     style D fill:#fff3e0
     style G fill:#fff3e0
     style M fill:#f3e5f5
-    style C fill:#f3e5f5
-    style GP fill:#f3e5f5
-    style A1 fill:#c8e6c9
-    style A2 fill:#c8e6c9
-    style A3 fill:#c8e6c9
+    style CC fill:#f3e5f5
+    style GC fill:#f3e5f5
+    style CR fill:#f3e5f5
+    style OA fill:#f3e5f5
 ```
 
 ## Multiple DNA Sources
@@ -197,7 +189,7 @@ graph TB
     end
 
     subgraph "AI Agents"
-        A[Claude Code<br/>GitHub Copilot<br/><i>access all guidelines</i>]
+        A[Antigravity<br/>Claude Code<br/>Cursor<br/>GitHub Copilot<br/>Windsurf<br/><i>access all guidelines</i>]
     end
 
     S1 --> C
