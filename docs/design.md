@@ -199,12 +199,12 @@ DNASpec stores local source paths as **relative to the project root** for portab
   - Only works on the original machine
   - All commands work silently with absolute paths (no warnings during normal use)
   - `dnaspec validate` shows **warnings** for absolute paths (backward compatible)
-  - Auto-converts to relative during `dnaspec update` when possible (silently keeps absolute if outside project)
+  - Must be manually edited in dnaspec.yaml to convert to relative paths
 
 **Path Outside Project Warning**:
 When using `dnaspec add` with a local path outside the project directory, DNASpec shows a warning and prompts for confirmation **before** loading the source or parsing the manifest. This prevents wasted time if you decide to cancel. This is the **only** command that warns about paths - all other commands operate silently.
 
-**Migration**: Run `dnaspec update <source-name>` to automatically convert absolute paths to relative paths when the source is within the project directory. Use `dnaspec validate` to find sources that need updating.
+**Migration**: Use `dnaspec validate` to find sources with absolute paths, then manually edit `dnaspec.yaml` to convert them to relative paths.
 
 **Monorepo Support**: The optional `subdir` field allows DNA repositories to be stored in subdirectories of larger monorepos. When `subdir` is set, DNASpec expects `dnaspec-manifest.yaml` to be located under that subdirectory within the repository or local path.
 
@@ -938,7 +938,7 @@ Validating dnaspec.yaml...
 
 ⚠ Found 1 warning(s):
   - Source 'experimental' uses absolute path: /Users/me/external/dna
-    Run 'dnaspec update experimental' to auto-convert, or manually edit dnaspec.yaml
+    Consider manually editing dnaspec.yaml to use a relative path
 
 ✓ Configuration is valid (with warnings)
 ```
@@ -1749,7 +1749,7 @@ Implementation:
 
 3. **Validation Warnings**:
    - `dnaspec validate` shows **warnings** for absolute paths (backward compatible)
-   - Provides actionable guidance: "Run 'dnaspec update <source>' to auto-convert"
+   - Suggests manually editing dnaspec.yaml to use relative paths
    - Doesn't fail validation, maintains backward compatibility
 
 4. **Auto-Migration**:

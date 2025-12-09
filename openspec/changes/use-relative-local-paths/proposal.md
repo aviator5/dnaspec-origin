@@ -87,10 +87,9 @@ sources:
 
 For users with existing absolute path configurations:
 
-1. **Detection**: `dnaspec validate` shows **warnings** for absolute paths and suggests running `update`
-2. **Automatic**: Running `dnaspec update <source>` auto-converts to relative paths when possible (silently keeps absolute if outside project)
-3. **Manual**: Users can edit `dnaspec.yaml` to convert absolute to relative paths
-4. **Seamless**: All commands (`list`, `add`, `update`, `sync`) work silently with absolute paths - no warnings
+1. **Detection**: `dnaspec validate` shows **warnings** for absolute paths
+2. **Manual**: Users edit `dnaspec.yaml` to convert absolute to relative paths
+3. **Seamless**: All commands (`list`, `add`, `update`, `sync`) work silently with absolute paths - no warnings
 
 ## Examples
 
@@ -161,7 +160,7 @@ Validating dnaspec.yaml...
 
 ⚠ Found 1 warning(s):
   - Source 'legacy-dna' uses absolute path: /Users/me/external/dna
-    Run 'dnaspec update legacy-dna' to auto-convert, or manually edit dnaspec.yaml
+    Consider manually editing dnaspec.yaml to use a relative path
 
 ✓ Configuration is valid (with warnings)
 ```

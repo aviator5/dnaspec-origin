@@ -281,22 +281,6 @@ func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInf
 		updatedSource.Commit = sourceInfo.Commit
 	}
 
-	// Auto-migrate absolute paths to relative for local sources
-	if src.Type == config.SourceTypeLocalPath && filepath.IsAbs(src.Path) {
-		projectRoot, err := filepath.Abs(filepath.Dir(projectConfigFileName))
-		if err != nil {
-			return fmt.Errorf("failed to resolve project root: %w", err)
-		}
-		relPath, err := paths.MakeRelative(projectRoot, src.Path)
-		if err == nil {
-			// Successfully converted to relative path
-			updatedSource.Path = relPath
-			fmt.Println(ui.SuccessStyle.Render("✓ Converted to relative path:"), relPath)
-		}
-		// If path is outside project, silently keep absolute path
-		// (dnaspec validate will report the error)
-	}
-
 	// Copy files
 	destDir := filepath.Join("dnaspec", src.Name)
 	if err := files.CopyGuidelineFiles(sourceInfo.SourceDir, destDir, manifestGuidelines, sourceInfo.Manifest.Prompts); err != nil {
