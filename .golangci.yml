@@ -72,6 +72,10 @@ linters:
           - ineffassign
           - noctx
           - unused
+      # Exclude dupl for agent prompt generators (intentional similar structure)
+      - path: 'internal/core/agents/(copilot|windsurf|antigravity|cursor)_.*\.go'
+        linters:
+          - dupl
       # Exclude gosec warnings for standard file/directory permissions
       - linters:
           - gosec

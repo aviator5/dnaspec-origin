@@ -10,14 +10,29 @@ type Agent struct {
 // Phase1Agents are the initially supported agents
 var Phase1Agents = []Agent{
 	{
+		ID:          "antigravity",
+		DisplayName: "Antigravity",
+		Description: "AI development assistant",
+	},
+	{
 		ID:          "claude-code",
 		DisplayName: "Claude Code",
 		Description: "Anthropic's AI assistant with slash commands",
 	},
 	{
+		ID:          "cursor",
+		DisplayName: "Cursor",
+		Description: "AI-first code editor",
+	},
+	{
 		ID:          "github-copilot",
 		DisplayName: "GitHub Copilot",
 		Description: "GitHub's AI pair programmer",
+	},
+	{
+		ID:          "windsurf",
+		DisplayName: "Windsurf",
+		Description: "AI-powered code editor",
 	},
 }
 

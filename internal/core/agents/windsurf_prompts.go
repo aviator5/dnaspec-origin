@@ -12,11 +12,11 @@ import (
 	"github.com/aviator5/dnaspec/internal/core/files"
 )
 
-// GenerateCopilotPrompt generates a GitHub Copilot prompt file
-func GenerateCopilotPrompt(sourceName string, prompt config.ProjectPrompt, sourceDir string) error {
-	// Generate filename: dnaspec-<source-name>-<prompt-name>.prompt.md
-	filename := fmt.Sprintf("dnaspec-%s-%s.prompt.md", sourceName, prompt.Name)
-	outputPath := filepath.Join(".github", "prompts", filename)
+// GenerateWindsurfPrompt generates a Windsurf workflow file
+func GenerateWindsurfPrompt(sourceName string, prompt config.ProjectPrompt, sourceDir string) error {
+	// Generate filename: dnaspec-<source-name>-<prompt-name>.md
+	filename := fmt.Sprintf("dnaspec-%s-%s.md", sourceName, prompt.Name)
+	outputPath := filepath.Join(".windsurf", "workflows", filename)
 
 	// Create directory if needed
 	dir := filepath.Dir(outputPath)
@@ -32,23 +32,21 @@ func GenerateCopilotPrompt(sourceName string, prompt config.ProjectPrompt, sourc
 	}
 
 	// Generate frontmatter and content
-	content := generateCopilotPromptContent(prompt, string(promptContent))
+	content := generateWindsurfPromptContent(prompt, string(promptContent))
 
 	// Write atomically
 	return writeFileAtomic(outputPath, []byte(content))
 }
 
-// generateCopilotPromptContent creates the full content of a Copilot prompt file
-func generateCopilotPromptContent(prompt config.ProjectPrompt, promptContent string) string {
+// generateWindsurfPromptContent creates the full content of a Windsurf workflow file
+func generateWindsurfPromptContent(prompt config.ProjectPrompt, promptContent string) string {
 	var sb strings.Builder
 
 	// Frontmatter
 	sb.WriteString("---\n")
 	sb.WriteString(fmt.Sprintf("description: %s\n", prompt.Description))
-	sb.WriteString("---\n\n")
-
-	// $ARGUMENTS placeholder
-	sb.WriteString("$ARGUMENTS\n\n")
+	sb.WriteString("auto_execution_mode: 3\n")
+	sb.WriteString("---\n")
 
 	// Managed block with prompt content
 	sb.WriteString(files.ManagedBlockStart)

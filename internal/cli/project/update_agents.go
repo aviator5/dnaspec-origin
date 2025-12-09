@@ -22,13 +22,16 @@ func NewUpdateAgentsCmd() *cobra.Command {
 		Short: "Configure AI agents and generate agent integration files",
 		Long: `Configure AI agents and generate agent integration files.
 
-This command allows you to select which AI agents to integrate with (Claude Code, GitHub Copilot)
-and generates the necessary files for each agent:
+This command allows you to select which AI agents to integrate with (Antigravity, Claude Code,
+Cursor, GitHub Copilot, Windsurf) and generates the necessary files for each agent:
 
 - AGENTS.md: Context-aware guideline references for all AI agents
 - CLAUDE.md: Same as AGENTS.md, for Claude Code discovery
 - Claude commands: Slash commands in .claude/commands/dnaspec/
 - Copilot prompts: Prompt files in .github/prompts/
+- Antigravity prompts: Workflow files in .agent/workflows/
+- Windsurf workflows: Workflow files in .windsurf/workflows/
+- Cursor commands: Command files in .cursor/commands/
 
 Use --no-ask to skip agent selection and use saved configuration.`,
 		RunE: runUpdateAgents,
@@ -116,6 +119,18 @@ func displaySummary(summary *agents.GenerationSummary) {
 
 	if summary.CopilotPrompts > 0 {
 		fmt.Println(successStyle.Render(fmt.Sprintf("  ✓ Generated %d Copilot prompt(s)", summary.CopilotPrompts)))
+	}
+
+	if summary.AntigravityPrompts > 0 {
+		fmt.Println(successStyle.Render(fmt.Sprintf("  ✓ Generated %d Antigravity prompt(s)", summary.AntigravityPrompts)))
+	}
+
+	if summary.WindsurfWorkflows > 0 {
+		fmt.Println(successStyle.Render(fmt.Sprintf("  ✓ Generated %d Windsurf workflow(s)", summary.WindsurfWorkflows)))
+	}
+
+	if summary.CursorCommands > 0 {
+		fmt.Println(successStyle.Render(fmt.Sprintf("  ✓ Generated %d Cursor command(s)", summary.CursorCommands)))
 	}
 
 	if len(summary.Errors) > 0 {

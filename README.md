@@ -88,14 +88,14 @@ Claude Code:
 
 ## Supported AI Agents
 
-**Current (Phase 1):**
-- **Claude Code** - Anthropic's AI assistant with slash commands and project context
-- **GitHub Copilot** - GitHub's AI pair programmer with chat prompts
-
-**Future (Phase 2+):**
-- **Windsurf** - AI-powered code editor
-- **Cursor** - AI-first code editor
+**Currently Supported:**
 - **Antigravity** - AI development assistant
+- **Claude Code** - Anthropic's AI assistant with slash commands and project context
+- **Cursor** - AI-first code editor
+- **GitHub Copilot** - GitHub's AI pair programmer with chat prompts
+- **Windsurf** - AI-powered code editor
+
+**Future:**
 - Additional AI tools as the ecosystem evolves
 
 ## How It Works

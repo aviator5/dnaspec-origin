@@ -84,14 +84,14 @@ DNA repositories or local directories containing guidelines and prompts. Each so
 
 AI coding assistants that consume DNA guidelines.
 
-**Phase 1 (Initial Support):**
-- **Claude Code**: Anthropic's AI assistant with slash commands
-- **GitHub Copilot**: GitHub's AI pair programmer
-
-**Future Phases:**
-- **Windsurf**: AI-powered code editor
-- **Cursor**: AI-first code editor
+**Currently Supported:**
 - **Antigravity**: AI development assistant
+- **Claude Code**: Anthropic's AI assistant with slash commands
+- **Cursor**: AI-first code editor
+- **GitHub Copilot**: GitHub's AI pair programmer
+- **Windsurf**: AI-powered code editor
+
+**Future:**
 - Additional tools as ecosystem evolves
 
 ### Managed Blocks
@@ -1109,7 +1109,7 @@ dna-guidelines/
 
 ## Agent Integrations
 
-### Claude Code (Phase 1)
+### Claude Code
 
 **Generated Files**:
 
@@ -1173,7 +1173,7 @@ Check for:
 /dnaspec-company-dna-go-code-review <file>
 ```
 
-### GitHub Copilot (Phase 1)
+### GitHub Copilot
 
 **Generated Files**:
 
@@ -1201,15 +1201,91 @@ Check for:
 **Usage**:
 GitHub Copilot reads prompts automatically and can be invoked via Copilot chat.
 
+### Antigravity
+
+**Generated Files**:
+
+1. **AGENTS.md** (managed block):
+Same as Claude Code and GitHub Copilot
+
+2. **.agent/workflows/dnaspec-<source-name>-<prompt-name>.md**:
+```markdown
+---
+description: Review Go code against go-style DNA guideline
+---
+<!-- DNASPEC:START -->
+Review the code against the go-style DNA guideline.
+
+Check for:
+- Code style compliance
+- Naming conventions
+- Error handling patterns
+- ...
+<!-- DNASPEC:END -->
+```
+
+**Usage**:
+Antigravity reads workflow files from `.agent/workflows/` directory.
+
+### Windsurf
+
+**Generated Files**:
+
+1. **AGENTS.md** (managed block):
+Same as other agents
+
+2. **.windsurf/workflows/dnaspec-<source-name>-<prompt-name>.md**:
+```markdown
+---
+description: Review Go code against go-style DNA guideline
+auto_execution_mode: 3
+---
+<!-- DNASPEC:START -->
+Review the code against the go-style DNA guideline.
+
+Check for:
+- Code style compliance
+- Naming conventions
+- Error handling patterns
+- ...
+<!-- DNASPEC:END -->
+```
+
+**Usage**:
+Windsurf reads workflow files from `.windsurf/workflows/` directory with auto-execution enabled.
+
+### Cursor
+
+**Generated Files**:
+
+1. **AGENTS.md** (managed block):
+Same as other agents
+
+2. **.cursor/commands/dnaspec-<source-name>-<prompt-name>.md**:
+```markdown
+---
+name: /dnaspec-company-dna-go-code-review
+id: dnaspec-company-dna-go-code-review
+category: DNASpec
+description: Review Go code against go-style DNA guideline
+---
+<!-- DNASPEC:START -->
+Review the code against the go-style DNA guideline.
+
+Check for:
+- Code style compliance
+- Naming conventions
+- Error handling patterns
+- ...
+<!-- DNASPEC:END -->
+```
+
+**Usage**:
+Cursor reads command files from `.cursor/commands/` directory and makes them available as slash commands.
+
 ### Future Agent Support
 
-**Phase 2+** will add support for:
-- **Windsurf**: AI-powered code editor with custom instructions
-- **Cursor**: AI-first code editor with .cursorrules and .cursordocs
-- **Antigravity**: AI development assistant
-- Additional AI tools as ecosystem evolves
-
-Each new agent will have its own integration pattern, but all will consume the same DNA guidelines and prompts.
+Additional AI tools can be integrated as the ecosystem evolves. Each new agent will have its own integration pattern, but all will consume the same DNA guidelines and prompts.
 
 ### Agent Abstraction
 
@@ -2152,13 +2228,13 @@ prompts:
 
 ### Supported Agents
 
-| Agent | ID | Phase | Integration |
-|-------|----|-|-------------|
-| Claude Code | `claude-code` | 1 (Initial) | `.claude/commands/dnaspec/<source>-<prompt>.md`, `CLAUDE.md` |
-| GitHub Copilot | `github-copilot` | 1 (Initial) | `.github/prompts/dnaspec-<source>-<prompt>.prompt.md` |
-| Windsurf | `windsurf` | 2 (Future) | TBD |
-| Cursor | `cursor` | 2 (Future) | `.cursorrules`, `.cursordocs` |
-| Antigravity | `antigravity` | 2 (Future) | TBD |
+| Agent | ID | Integration |
+|-------|-------|-------------|
+| Antigravity | `antigravity` | `.agent/workflows/dnaspec-<source>-<prompt>.md` |
+| Claude Code | `claude-code` | `.claude/commands/dnaspec/<source>-<prompt>.md`, `CLAUDE.md` |
+| Cursor | `cursor` | `.cursor/commands/dnaspec-<source>-<prompt>.md` |
+| GitHub Copilot | `github-copilot` | `.github/prompts/dnaspec-<source>-<prompt>.prompt.md` |
+| Windsurf | `windsurf` | `.windsurf/workflows/dnaspec-<source>-<prompt>.md` |
 
 ### Error Messages
 
