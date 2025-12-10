@@ -173,8 +173,8 @@ func displayImpact(sourceName string) {
 	promptCount := 0
 
 	if info, err := os.Stat(sourceDir); err == nil && info.IsDir() {
-		// Count guidelines (*.md files in root)
-		guidelineFiles, err := filepath.Glob(filepath.Join(sourceDir, "*.md"))
+		// Count guidelines (files in guidelines/ subdirectory)
+		guidelineFiles, err := filepath.Glob(filepath.Join(sourceDir, "guidelines", "*"))
 		if err == nil {
 			guidelineCount = len(guidelineFiles)
 		}

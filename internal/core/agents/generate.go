@@ -2,9 +2,11 @@ package agents
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/aviator5/dnaspec/internal/core/config"
+	"github.com/aviator5/dnaspec/internal/core/files"
 )
 
 // GenerationSummary contains counts of generated files
@@ -138,4 +140,51 @@ func contains(slice []string, value string) bool {
 		}
 	}
 	return false
+}
+
+// CleanupSummary contains information about cleanup actions
+type CleanupSummary struct {
+	AgentsMDCleaned bool
+	ClaudeMDCleaned bool
+}
+
+// CleanupAgentFiles removes DNASPEC blocks from AGENTS.md and CLAUDE.md if they exist
+// Returns a summary of what was cleaned up
+func CleanupAgentFiles() (*CleanupSummary, error) {
+	summary := &CleanupSummary{}
+
+	// Clean up AGENTS.md
+	if err := cleanupFile("AGENTS.md"); err == nil {
+		summary.AgentsMDCleaned = true
+	} else if !os.IsNotExist(err) {
+		return summary, fmt.Errorf("failed to cleanup AGENTS.md: %w", err)
+	}
+
+	// Clean up CLAUDE.md
+	if err := cleanupFile("CLAUDE.md"); err == nil {
+		summary.ClaudeMDCleaned = true
+	} else if !os.IsNotExist(err) {
+		return summary, fmt.Errorf("failed to cleanup CLAUDE.md: %w", err)
+	}
+
+	return summary, nil
+}
+
+// cleanupFile removes DNASPEC block from a file if it exists
+// Returns nil if block was removed, os.ErrNotExist if file doesn't exist,
+// or other error if something went wrong
+func cleanupFile(path string) error {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	cleanedContent, removed := files.RemoveManagedBlock(string(content))
+	if !removed {
+		// No block to remove, nothing to do
+		return os.ErrNotExist
+	}
+
+	// Write the cleaned content back
+	return writeFileAtomic(path, []byte(cleanedContent))
 }
