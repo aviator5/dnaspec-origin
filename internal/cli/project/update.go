@@ -1,11 +1,9 @@
 package project
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/core/files"
@@ -72,12 +70,7 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	// Find source by name
 	src := config.FindSourceByName(cfg, sourceName)
 	if src == nil {
-		fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Source not found:", sourceName)
-		fmt.Println("\nAvailable sources:")
-		for i := range cfg.Sources {
-			fmt.Printf("  - %s\n", cfg.Sources[i].Name)
-		}
-		return fmt.Errorf("source not found")
+		return handleSourceNotFound(cfg, sourceName)
 	}
 
 	// Fetch latest from origin
@@ -89,9 +82,7 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 		defer cleanup()
 	}
 	if upToDate {
-		fmt.Println(ui.SuccessStyle.Render("✓ Current commit:"), src.Commit[:8])
-		fmt.Println(ui.SuccessStyle.Render("✓ Already at latest commit"))
-		fmt.Println("\nAll guidelines up to date.")
+		showAlreadyUpToDate(src)
 		return nil
 	}
 
@@ -100,34 +91,67 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 
 	// Dry run check - show preview without interactive selection
 	if flags.dryRun {
-		fmt.Println(ui.InfoStyle.Render("\n=== Dry Run - Preview ==="))
-		fmt.Println("\nAvailable guidelines in source:")
-		for _, g := range sourceInfo.Manifest.Guidelines {
-			fmt.Printf("  - %s: %s\n", g.Name, g.Description)
-		}
-
-		if len(comparison.Unchanged) > 0 || len(comparison.Updated) > 0 {
-			fmt.Println("\nAlready in config:")
-			for _, name := range comparison.Unchanged {
-				fmt.Println(ui.SuccessStyle.Render("  ✓"), name)
-			}
-			for _, name := range comparison.Updated {
-				fmt.Println(ui.SuccessStyle.Render("  ✓"), name, ui.SubtleStyle.Render("(updated)"))
-			}
-		}
-
-		if len(comparison.Removed) > 0 {
-			fmt.Println("\nOrphaned (in config but not in source):")
-			for _, name := range comparison.Removed {
-				fmt.Printf(ui.SubtleStyle.Render("  ⚠️ %s (no longer in manifest)\n"), name)
-			}
-		}
-
-		fmt.Println("\nNo changes made (dry run)")
+		showDryRunPreview(sourceInfo, comparison)
 		return nil
 	}
 
 	// Interactive guideline selection
+	selectedNames, err := performGuidelineSelection(src, comparison, sourceInfo)
+	if err != nil {
+		return fmt.Errorf("guideline selection canceled or failed: %w", err)
+	}
+
+	// Apply selection
+	return applyUpdate(cfg, src, sourceInfo, selectedNames)
+}
+
+func handleSourceNotFound(cfg *config.ProjectConfig, sourceName string) error {
+	fmt.Println(ui.ErrorStyle.Render("✗ Error:"), "Source not found:", sourceName)
+	fmt.Println("\nAvailable sources:")
+	for i := range cfg.Sources {
+		fmt.Printf("  - %s\n", cfg.Sources[i].Name)
+	}
+	return fmt.Errorf("source not found")
+}
+
+func showAlreadyUpToDate(src *config.ProjectSource) {
+	fmt.Println(ui.SuccessStyle.Render("✓ Current commit:"), src.Commit[:8])
+	fmt.Println(ui.SuccessStyle.Render("✓ Already at latest commit"))
+	fmt.Println("\nAll guidelines up to date.")
+}
+
+func showDryRunPreview(sourceInfo *source.SourceInfo, comparison config.GuidelineComparison) {
+	fmt.Println(ui.InfoStyle.Render("\n=== Dry Run - Preview ==="))
+	fmt.Println("\nAvailable guidelines in source:")
+	for _, g := range sourceInfo.Manifest.Guidelines {
+		fmt.Printf("  - %s: %s\n", g.Name, g.Description)
+	}
+
+	if len(comparison.Unchanged) > 0 || len(comparison.Updated) > 0 {
+		fmt.Println("\nAlready in config:")
+		for _, name := range comparison.Unchanged {
+			fmt.Println(ui.SuccessStyle.Render("  ✓"), name)
+		}
+		for _, name := range comparison.Updated {
+			fmt.Println(ui.SuccessStyle.Render("  ✓"), name, ui.SubtleStyle.Render("(updated)"))
+		}
+	}
+
+	if len(comparison.Removed) > 0 {
+		fmt.Println("\nOrphaned (in config but not in source):")
+		for _, name := range comparison.Removed {
+			fmt.Printf(ui.SubtleStyle.Render("  ⚠️ %s (no longer in manifest)\n"), name)
+		}
+	}
+
+	fmt.Println("\nNo changes made (dry run)")
+}
+
+func performGuidelineSelection(
+	src *config.ProjectSource,
+	comparison config.GuidelineComparison,
+	sourceInfo *source.SourceInfo,
+) ([]string, error) {
 	// Build lists for selection
 	var existingNames []string
 	existingNames = append(existingNames, comparison.Unchanged...)
@@ -144,17 +168,11 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	}
 
 	// Call interactive selection
-	selectedNames, err := ui.SelectGuidelinesWithStatus(
+	return ui.SelectGuidelinesWithStatus(
 		sourceInfo.Manifest.Guidelines,
 		existingNames,
 		orphanedGuidelines,
 	)
-	if err != nil {
-		return fmt.Errorf("guideline selection canceled or failed: %w", err)
-	}
-
-	// Apply selection
-	return applyUpdate(cfg, src, sourceInfo, selectedNames)
 }
 
 func fetchAndCheckSource(src *config.ProjectSource) (info *source.SourceInfo, cleanup func(), upToDate bool, err error) {
@@ -266,15 +284,4 @@ func findManifestGuideline(manifest *config.Manifest, name string) *config.Manif
 		}
 	}
 	return nil
-}
-
-func promptYesNo(question string) bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(question + " [y/N]: ")
-	response, err := reader.ReadString('\n')
-	if err != nil {
-		return false
-	}
-	response = strings.TrimSpace(strings.ToLower(response))
-	return response == "y" || response == "yes"
 }

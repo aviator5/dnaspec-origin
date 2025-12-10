@@ -63,7 +63,11 @@ var testMockSelection func(available []config.ManifestGuideline, existing []stri
 
 // SetTestMockSelection sets a mock function for testing
 // This allows tests to bypass interactive UI
-func SetTestMockSelection(fn func(available []config.ManifestGuideline, existing []string, orphaned []config.ProjectGuideline) ([]string, error)) {
+func SetTestMockSelection(
+	fn func(available []config.ManifestGuideline,
+		existing []string,
+		orphaned []config.ProjectGuideline) ([]string, error),
+) {
 	testMockSelection = fn
 }
 
