@@ -402,3 +402,171 @@ func TestRemoveCommand_PreservesOtherSourceFiles(t *testing.T) {
 	_, err = os.Stat(filepath.Join(copilotDir, "dnaspec-source-to-keep-prompt.prompt.md"))
 	assert.NoError(t, err)
 }
+
+func TestRemoveCommand_AllAgentFiles(t *testing.T) {
+	// Create temp directory
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+	os.Chdir(tmpDir)
+
+	// Create configuration
+	cfg := &config.ProjectConfig{
+		Version: 1,
+		Sources: []config.ProjectSource{
+			{
+				Name: "test-source",
+				Type: "git-repo",
+				URL:  "https://github.com/test/repo",
+			},
+		},
+	}
+	err := config.SaveProjectConfig(projectConfigFileName, cfg)
+	require.NoError(t, err)
+
+	// Create generated files for all agents
+	agentFiles := []struct {
+		dir  string
+		file string
+	}{
+		{".agent/workflows", "dnaspec-test-source-workflow.md"},
+		{".claude/commands/dnaspec", "test-source-command.md"},
+		{".cursor/commands", "dnaspec-test-source-cursor.md"},
+		{".github/prompts", "dnaspec-test-source-prompt.prompt.md"},
+		{".windsurf/workflows", "dnaspec-test-source-windsurf.md"},
+	}
+
+	for _, af := range agentFiles {
+		err = os.MkdirAll(af.dir, 0755)
+		require.NoError(t, err)
+		err = os.WriteFile(filepath.Join(af.dir, af.file), []byte("content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Run remove with --force
+	err = runRemove("test-source", true)
+	assert.NoError(t, err)
+
+	// Verify all generated files were deleted
+	for _, af := range agentFiles {
+		_, err = os.Stat(filepath.Join(af.dir, af.file))
+		assert.True(t, os.IsNotExist(err), "File %s should be deleted", filepath.Join(af.dir, af.file))
+	}
+}
+
+func TestRemoveCommand_CursorFiles(t *testing.T) {
+	// Create temp directory
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+	os.Chdir(tmpDir)
+
+	// Create configuration
+	cfg := &config.ProjectConfig{
+		Version: 1,
+		Sources: []config.ProjectSource{
+			{
+				Name: "test-source",
+				Type: "git-repo",
+				URL:  "https://github.com/test/repo",
+			},
+		},
+	}
+	err := config.SaveProjectConfig(projectConfigFileName, cfg)
+	require.NoError(t, err)
+
+	// Create only Cursor command files
+	cursorDir := filepath.Join(".cursor", "commands")
+	err = os.MkdirAll(cursorDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(cursorDir, "dnaspec-test-source-cmd1.md"), []byte("cursor1"), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(cursorDir, "dnaspec-test-source-cmd2.md"), []byte("cursor2"), 0644)
+	require.NoError(t, err)
+
+	// Run remove with --force
+	err = runRemove("test-source", true)
+	assert.NoError(t, err)
+
+	// Verify generated files were deleted
+	files, _ := filepath.Glob(filepath.Join(cursorDir, "dnaspec-test-source-*.md"))
+	assert.Equal(t, 0, len(files))
+}
+
+func TestRemoveCommand_WindsurfFiles(t *testing.T) {
+	// Create temp directory
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+	os.Chdir(tmpDir)
+
+	// Create configuration
+	cfg := &config.ProjectConfig{
+		Version: 1,
+		Sources: []config.ProjectSource{
+			{
+				Name: "test-source",
+				Type: "git-repo",
+				URL:  "https://github.com/test/repo",
+			},
+		},
+	}
+	err := config.SaveProjectConfig(projectConfigFileName, cfg)
+	require.NoError(t, err)
+
+	// Create only Windsurf workflow files
+	windsurfDir := filepath.Join(".windsurf", "workflows")
+	err = os.MkdirAll(windsurfDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(windsurfDir, "dnaspec-test-source-flow1.md"), []byte("windsurf1"), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(windsurfDir, "dnaspec-test-source-flow2.md"), []byte("windsurf2"), 0644)
+	require.NoError(t, err)
+
+	// Run remove with --force
+	err = runRemove("test-source", true)
+	assert.NoError(t, err)
+
+	// Verify generated files were deleted
+	files, _ := filepath.Glob(filepath.Join(windsurfDir, "dnaspec-test-source-*.md"))
+	assert.Equal(t, 0, len(files))
+}
+
+func TestRemoveCommand_AntigravityFiles(t *testing.T) {
+	// Create temp directory
+	tmpDir := t.TempDir()
+	origDir, _ := os.Getwd()
+	defer os.Chdir(origDir)
+	os.Chdir(tmpDir)
+
+	// Create configuration
+	cfg := &config.ProjectConfig{
+		Version: 1,
+		Sources: []config.ProjectSource{
+			{
+				Name: "test-source",
+				Type: "git-repo",
+				URL:  "https://github.com/test/repo",
+			},
+		},
+	}
+	err := config.SaveProjectConfig(projectConfigFileName, cfg)
+	require.NoError(t, err)
+
+	// Create only Antigravity workflow files
+	antigravityDir := filepath.Join(".agent", "workflows")
+	err = os.MkdirAll(antigravityDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(antigravityDir, "dnaspec-test-source-workflow1.md"), []byte("antigravity1"), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(antigravityDir, "dnaspec-test-source-workflow2.md"), []byte("antigravity2"), 0644)
+	require.NoError(t, err)
+
+	// Run remove with --force
+	err = runRemove("test-source", true)
+	assert.NoError(t, err)
+
+	// Verify generated files were deleted
+	files, _ := filepath.Glob(filepath.Join(antigravityDir, "dnaspec-test-source-*.md"))
+	assert.Equal(t, 0, len(files))
+}

@@ -224,7 +224,7 @@ Next steps:
 
 ### `dnaspec remove`
 
-Remove a DNA source from your project configuration. This command safely removes the source from `dnaspec.yaml`, deletes the source directory and all guideline files, and cleans up generated agent files (Claude commands and Copilot prompts).
+Remove a DNA source from your project configuration. This command safely removes the source from `dnaspec.yaml`, deletes the source directory and all guideline files, and cleans up generated agent files for all supported agents (Antigravity, Claude Code, Cursor, GitHub Copilot, and Windsurf).
 
 **Basic usage:**
 ```bash
@@ -240,8 +240,12 @@ This command:
 - Prompts for confirmation before deletion (unless `--force` is used)
 - Removes the source entry from `dnaspec.yaml`
 - Deletes the `dnaspec/<source-name>/` directory
-- Cleans up generated Claude command files (`.claude/commands/dnaspec/<source-name>-*.md`)
-- Cleans up generated Copilot prompt files (`.github/prompts/dnaspec-<source-name>-*.prompt.md`)
+- Cleans up generated agent files for all supported agents:
+  - Antigravity: `.agent/workflows/dnaspec-<source-name>-*.md`
+  - Claude Code: `.claude/commands/dnaspec/<source-name>-*.md`
+  - Cursor: `.cursor/commands/dnaspec-<source-name>-*.md`
+  - GitHub Copilot: `.github/prompts/dnaspec-<source-name>-*.prompt.md`
+  - Windsurf: `.windsurf/workflows/dnaspec-<source-name>-*.md`
 - Handles missing files gracefully (idempotent operation)
 
 **Flags:**
@@ -279,7 +283,7 @@ dnaspec list
 
 This command:
 - Loads and displays the `dnaspec.yaml` configuration file
-- Shows configured AI agents (Phase 1: Claude Code, GitHub Copilot)
+- Shows configured AI agents (Antigravity, Claude Code, Cursor, GitHub Copilot, Windsurf)
 - Lists all DNA sources with their type-specific metadata
 - Displays guidelines and prompts for each source
 - Provides a quick overview of your project's DNA setup
@@ -287,8 +291,8 @@ This command:
 **Example output:**
 ```
 Configured Agents (Phase 1):
-  - claude-code
-  - github-copilot
+  - Claude Code
+  - GitHub Copilot
 
 Sources:
 
