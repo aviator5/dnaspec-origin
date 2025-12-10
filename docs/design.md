@@ -528,25 +528,17 @@ Next steps:
 
 ### `dnaspec update`
 
-**Purpose**: Update source(s) from their origin
+**Purpose**: Update source from origin with interactive guideline selection
 
 **Usage**:
 ```bash
-# Update specific source
+# Update specific source with interactive selection
 dnaspec update <source-name> [--dry-run]
-
-# Update all sources
-dnaspec update --all [--dry-run]
 ```
 
 **Options**:
-- `<source-name>`: Name of source to update (required unless --all)
-- `--all`: Update all sources
-- `--dry-run`: Preview changes without writing files
-- `--add-new=<policy>`: Control automatic addition of new guidelines
-  - `all`: Automatically add all newly discovered guidelines (non-interactive)
-  - `none`: Never add new guidelines, only update existing (non-interactive)
-  - Omit this flag for interactive prompt (default behavior)
+- `<source-name>`: Name of source to update (required)
+- `--dry-run`: Preview changes without interactive selection or writing files
 
 **Behavior**:
 
@@ -561,14 +553,14 @@ flowchart TD
     F --> H[Parse latest manifest]
     G --> H
     H --> I[Compare with current config]
-    I --> J[Update selected guidelines]
-    J --> K[Display changes: updated/new/removed]
-    K --> L{New guidelines available?}
-    L -->|Yes| M[Prompt to add new]
-    L -->|No| N[Update commit hash in yaml]
-    M --> N
+    I --> J{--dry-run?}
+    J -->|Yes| K[Display categorized preview]
+    J -->|No| L[Interactive guideline selection]
+    L --> M[Copy selected files]
+    M --> N[Update commit hash in yaml]
     N --> O[Suggest: run update-agents]
-    D --> P[End]
+    K --> P[End]
+    D --> P
     O --> P
 ```
 
@@ -577,58 +569,66 @@ flowchart TD
 1. **Find Source**: Look up source by name in `dnaspec.yaml`
 2. **Fetch Latest**: Clone (git) or read (local) from configured location
 3. **Parse Manifest**: Read latest `dnaspec-manifest.yaml`
-4. **Compare**: Detect updated, new, and removed guidelines
-5. **Update Selected Guidelines**: Copy latest files, overwrite existing (no drift detection)
-6. **Report Changes**: Display what changed
-7. **Handle New Guidelines**:
-   - **Interactive mode** (default when `--add-new` not specified):
-     - Prompt user to add newly available guidelines
-   - **Non-interactive mode** (`--add-new` flag provided):
-     - `--add-new=all`: Automatically add all new guidelines
-     - `--add-new=none`: Skip new guidelines, only update existing
-8. **Update Metadata**: Update commit hash (git) in `dnaspec.yaml`
-9. **Suggest Next Steps**: "Run 'dnaspec update-agents' to regenerate agent files"
+4. **Compare**: Detect updated, new, and orphaned guidelines
+5. **Dry-run or Interactive**:
+   - **Dry-run**: Display categorized preview without prompting
+   - **Interactive**: Show multi-select UI with:
+     - Available guidelines from source
+     - Existing guidelines (pre-selected)
+     - Orphaned guidelines with ⚠️ warning (pre-selected)
+6. **Apply Selection**: Copy selected files, update metadata
+7. **Update Metadata**: Update commit hash (git) in `dnaspec.yaml`
+8. **Suggest Next Steps**: "Run 'dnaspec update-agents' to regenerate agent files"
 
 **Examples**:
 ```bash
-# Update specific source
+# Update with interactive selection
 dnaspec update my-company-dna
 
-# Update all sources
-dnaspec update --all
-
-# Preview updates without applying
+# Preview without interaction
 dnaspec update my-company-dna --dry-run
-
-# Non-interactive: Auto-add all new guidelines
-dnaspec update my-company-dna --add-new=all
-
-# Non-interactive: Only update existing, don't add new
-dnaspec update my-company-dna --add-new=none
 ```
 
-**Output**:
+**Interactive output**:
 ```
 Fetching latest from https://github.com/company/dna...
 ✓ Current commit: abc123de
 ✓ Latest commit: def456ab (changed)
 
-Updated guidelines:
-  ✓ go-style (description changed)
-  ✓ rest-api (content updated)
+Select guidelines to keep or add:
+Use space to select/deselect, enter to confirm. ⚠️ = missing from source
 
-New guidelines available:
-  - go-testing - Go testing patterns
-  - go-errors - Error handling conventions
-
-Removed from source:
-  - old-guideline (no longer in manifest)
-
-Add new guidelines? [y/N]: n
+  [✓] go-style - Go coding conventions
+  [✓] rest-api - REST API design principles  
+  [ ] go-testing - Go testing patterns (new)
+  [✓] old-guideline - Deprecated pattern ⚠️
 
 ✓ Updated dnaspec.yaml
 
 Run 'dnaspec update-agents' to regenerate agent files
+```
+
+**Dry-run output**:
+```
+Fetching latest from https://github.com/company/dna...
+✓ Current commit: abc123de
+✓ Latest commit: def456ab (changed)
+
+=== Dry Run - Preview ===
+
+Available guidelines in source:
+  - go-style: Go coding conventions
+  - rest-api: REST API design principles
+  - go-testing: Go testing patterns
+
+Already in config:
+  ✓ go-style
+  ✓ rest-api (updated)
+
+Orphaned (in config but not in source):
+  ⚠️ old-guideline (no longer in manifest)
+
+No changes made (dry run)
 ```
 
 ---
@@ -964,15 +964,18 @@ dnaspec sync [--dry-run]
 - `--dry-run`: Preview what would change without writing files
 
 **Behavior**:
-1. Update all sources (equivalent to `dnaspec update --all`)
+1. Update all sources sequentially (non-interactive)
 2. Regenerate agent files (equivalent to `dnaspec update-agents --no-ask`)
 3. Display summary of changes
 
 **Note**: `dnaspec sync` is designed to be non-interactive and safe for CI pipelines. It uses saved agent configurations and does not prompt for user input.
 
-**Equivalent To**:
+**Workflow**:
 ```bash
-dnaspec update --all
+# Sync iterates over each source and updates them
+for source in $(yq '.sources[].name' dnaspec.yaml); do
+  dnaspec update "$source"  # Non-interactive when used in sync
+done
 dnaspec update-agents --no-ask
 ```
 
@@ -1042,14 +1045,9 @@ dnaspec update-agents --no-ask
 ```bash
 # Option 1: Update specific source
 dnaspec update company
-# (Shows changes, prompts for new guidelines)
 dnaspec update-agents --no-ask
 
-# Option 2: Update all sources
-dnaspec update --all
-dnaspec update-agents --no-ask
-
-# Option 3: Sync everything (update all + regenerate agents)
+# Update all sources (non-interactive)
 dnaspec sync
 
 # Commit changes

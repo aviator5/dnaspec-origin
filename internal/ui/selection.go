@@ -57,6 +57,97 @@ func SelectGuidelines(available []config.ManifestGuideline) ([]config.ManifestGu
 	return result, nil
 }
 
+// testMockSelection allows tests to bypass interactive UI
+// When set, this function will be called instead of showing the UI
+var testMockSelection func(available []config.ManifestGuideline, existing []string, orphaned []config.ProjectGuideline) ([]string, error)
+
+// SetTestMockSelection sets a mock function for testing
+// This allows tests to bypass interactive UI
+func SetTestMockSelection(fn func(available []config.ManifestGuideline, existing []string, orphaned []config.ProjectGuideline) ([]string, error)) {
+	testMockSelection = fn
+}
+
+// SelectGuidelinesWithStatus presents an interactive multi-select form for choosing guidelines
+// with support for marking existing and orphaned guidelines.
+//
+// - available: Guidelines from the source manifest (new + existing + updated)
+// - existing: Guidelines currently in project config that are also in manifest
+// - orphaned: Guidelines in project config but missing from manifest
+//
+// Returns selected guideline names (not including orphaned ones)
+func SelectGuidelinesWithStatus(
+	available []config.ManifestGuideline,
+	existing []string,
+	orphaned []config.ProjectGuideline,
+) ([]string, error) {
+	// Allow tests to mock the selection
+	if testMockSelection != nil {
+		return testMockSelection(available, existing, orphaned)
+	}
+
+	if len(available) == 0 && len(orphaned) == 0 {
+		return nil, fmt.Errorf("no guidelines available")
+	}
+
+	// Build maps for quick lookup
+	existingMap := make(map[string]bool)
+	for _, name := range existing {
+		existingMap[name] = true
+	}
+
+	// Build options list with available guidelines
+	var options []huh.Option[string]
+	for _, g := range available {
+		label := fmt.Sprintf("%s - %s", g.Name, g.Description)
+		options = append(options, huh.NewOption(label, g.Name))
+	}
+
+	// Add orphaned guidelines at the end with warning icon
+	for _, g := range orphaned {
+		label := fmt.Sprintf("%s - %s ⚠️", g.Name, g.Description)
+		options = append(options, huh.NewOption(label, g.Name))
+	}
+
+	// Pre-select existing and orphaned guidelines
+	var preSelected []string
+	preSelected = append(preSelected, existing...)
+	for _, g := range orphaned {
+		preSelected = append(preSelected, g.Name)
+	}
+
+	// Create multi-select form
+	selected := preSelected // Initialize with pre-selected values
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Title("Select guidelines to keep or add:").
+				Description("Use space to select/deselect, enter to confirm. ⚠️ = missing from source").
+				Options(options...).
+				Value(&selected),
+		),
+	)
+
+	if err := form.Run(); err != nil {
+		return nil, err
+	}
+
+	// Filter out orphaned guidelines from the result
+	// (user can deselect them to remove, but they're not in the source manifest)
+	orphanedMap := make(map[string]bool)
+	for _, g := range orphaned {
+		orphanedMap[g.Name] = true
+	}
+
+	var result []string
+	for _, name := range selected {
+		if !orphanedMap[name] {
+			result = append(result, name)
+		}
+	}
+
+	return result, nil
+}
+
 // SelectGuidelinesByName selects guidelines by their names
 // Validates that all requested names exist in the available guidelines
 func SelectGuidelinesByName(available []config.ManifestGuideline, names []string) ([]config.ManifestGuideline, error) {

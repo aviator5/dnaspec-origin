@@ -6,8 +6,20 @@ import (
 	"testing"
 
 	"github.com/aviator5/dnaspec/internal/core/config"
+	"github.com/aviator5/dnaspec/internal/ui"
 	"github.com/stretchr/testify/require"
 )
+
+func init() {
+	// Mock UI selection for all tests - select all available guidelines
+	ui.SetTestMockSelection(func(available []config.ManifestGuideline, existing []string, orphaned []config.ProjectGuideline) ([]string, error) {
+		var selected []string
+		for _, g := range available {
+			selected = append(selected, g.Name)
+		}
+		return selected, nil
+	})
+}
 
 func TestUpdateCommand_Integration(t *testing.T) {
 	if testing.Short() {
@@ -58,9 +70,9 @@ func TestUpdateCommand_Integration(t *testing.T) {
 			t.Fatalf("Failed to update config path: %v", err)
 		}
 
-		// Run update command with --add-new=all
+		// Run update command (interactive selection will be tested separately)
 		updateFlags := updateFlags{
-			addNew: "all",
+			dryRun: false,
 		}
 		if err := updateSingleSource(cfg, "valid-repo", updateFlags); err != nil {
 			t.Fatalf("updateSingleSource() error = %v", err)
@@ -120,56 +132,6 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		}
 	})
 
-	t.Run("update with --add-new=none", func(t *testing.T) {
-		projectDir := t.TempDir()
-		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
-
-		os.Chdir(projectDir)
-		err := runInit()
-		require.NoError(t, err)
-
-		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
-
-		// Add initial source
-		addFlags := addFlags{
-			all: true,
-		}
-		err = runAdd(addFlags, []string{testdataPath})
-		require.NoError(t, err)
-
-		// Update config to point to updated fixture
-		cfg, _ := config.LoadProjectConfig(projectConfigFileName)
-		updatedPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo-updated"))
-		cfg.Sources[0].Path = updatedPath
-		err = config.SaveProjectConfig(projectConfigFileName, cfg)
-		require.NoError(t, err)
-
-		// Run update with --add-new=none
-		updateFlags := updateFlags{
-			addNew: "none",
-		}
-		if err := updateSingleSource(cfg, "valid-repo", updateFlags); err != nil {
-			t.Fatalf("updateSingleSource() error = %v", err)
-		}
-
-		// Verify state
-		cfg, _ = config.LoadProjectConfig(projectConfigFileName)
-		source := cfg.Sources[0]
-
-		// Should still have 2 guidelines (new one not added)
-		if len(source.Guidelines) != 2 {
-			t.Errorf("Expected 2 guidelines (new not added), got %d", len(source.Guidelines))
-		}
-
-		// Verify new guideline was NOT added
-		for _, g := range source.Guidelines {
-			if g.Name == "new-guideline" {
-				t.Error("new-guideline should not have been added with --add-new=none")
-			}
-		}
-	})
-
 	t.Run("update with dry-run", func(t *testing.T) {
 		projectDir := t.TempDir()
 		origDir, _ := os.Getwd()
@@ -198,10 +160,9 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		err = config.SaveProjectConfig(projectConfigFileName, cfgBefore)
 		require.NoError(t, err)
 
-		// Run update with dry-run
+		// Run update with dry-run (without adding new guidelines automatically)
 		updateFlags := updateFlags{
 			dryRun: true,
-			addNew: "all",
 		}
 		if err := updateSingleSource(cfgBefore, "valid-repo", updateFlags); err != nil {
 			t.Fatalf("updateSingleSource() error = %v", err)
@@ -219,68 +180,6 @@ func TestUpdateCommand_Integration(t *testing.T) {
 		newGuidelineFile := filepath.Join(projectDir, "dnaspec", "valid-repo", "guidelines", "new-guideline.md")
 		if _, err := os.Stat(newGuidelineFile); err == nil {
 			t.Error("Dry-run should not copy new files")
-		}
-	})
-
-	t.Run("update all sources", func(t *testing.T) {
-		projectDir := t.TempDir()
-		origDir, _ := os.Getwd()
-		defer os.Chdir(origDir)
-
-		os.Chdir(projectDir)
-		err := runInit()
-		require.NoError(t, err)
-
-		testdataPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo"))
-
-		// Add two sources
-		addFlags1 := addFlags{
-			all:  true,
-			name: "source-1",
-		}
-		err = runAdd(addFlags1, []string{testdataPath})
-		require.NoError(t, err)
-
-		addFlags2 := addFlags{
-			all:  true,
-			name: "source-2",
-		}
-		err = runAdd(addFlags2, []string{testdataPath})
-		require.NoError(t, err)
-
-		// Verify we have 2 sources
-		cfg, _ := config.LoadProjectConfig(projectConfigFileName)
-		if len(cfg.Sources) != 2 {
-			t.Fatalf("Expected 2 sources, got %d", len(cfg.Sources))
-		}
-
-		// Update both to point to updated fixture
-		updatedPath, _ := filepath.Abs(filepath.Join(origDir, "../../core/source/testdata/valid-repo-updated"))
-		cfg.Sources[0].Path = updatedPath
-		cfg.Sources[1].Path = updatedPath
-		err = config.SaveProjectConfig(projectConfigFileName, cfg)
-		require.NoError(t, err)
-
-		// Run update --all
-		updateFlags := updateFlags{
-			all:    true,
-			addNew: "all",
-		}
-
-		// Reload config
-		cfg, _ = config.LoadProjectConfig(projectConfigFileName)
-		if err := updateAllSources(cfg, updateFlags); err != nil {
-			t.Fatalf("updateAllSources() error = %v", err)
-		}
-
-		// Verify both sources were updated
-		cfg, _ = config.LoadProjectConfig(projectConfigFileName)
-
-		for _, source := range cfg.Sources {
-			if len(source.Guidelines) != 3 {
-				t.Errorf("Source %s: expected 3 guidelines after update, got %d",
-					source.Name, len(source.Guidelines))
-			}
 		}
 	})
 
@@ -358,34 +257,12 @@ func TestUpdateCommand_ErrorCases(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid add-new value", func(t *testing.T) {
-		updateFlags := updateFlags{
-			addNew: "invalid",
-		}
-
-		err := runUpdate(updateFlags, []string{"some-source"})
-		if err == nil {
-			t.Error("Expected error for invalid --add-new value")
-		}
-	})
-
-	t.Run("both source name and --all", func(t *testing.T) {
-		updateFlags := updateFlags{
-			all: true,
-		}
-
-		err := runUpdate(updateFlags, []string{"some-source"})
-		if err == nil {
-			t.Error("Expected error when both source name and --all are specified")
-		}
-	})
-
-	t.Run("neither source name nor --all", func(t *testing.T) {
+	t.Run("missing source name", func(t *testing.T) {
 		updateFlags := updateFlags{}
 
 		err := runUpdate(updateFlags, []string{})
 		if err == nil {
-			t.Error("Expected error when neither source name nor --all are specified")
+			t.Error("Expected error when source name is not specified")
 		}
 	})
 }

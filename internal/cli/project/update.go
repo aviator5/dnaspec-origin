@@ -16,9 +16,7 @@ import (
 )
 
 type updateFlags struct {
-	all    bool
 	dryRun bool
-	addNew string
 }
 
 // NewUpdateCmd creates the update command for updating DNA sources
@@ -27,55 +25,31 @@ func NewUpdateCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "update [source-name]",
-		Short: "Update source(s) from their origin",
-		Long: `Update DNA sources from their origins (git repositories or local directories).
+		Short: "Update source from its origin with interactive guideline selection",
+		Long: `Update a DNA source from its origin (git repository or local directory).
 
-This command fetches the latest manifest from the source, updates existing guidelines,
-and optionally adds new guidelines or reports removed ones.`,
-		Example: `  # Update a specific source
+This command fetches the latest manifest from the source and presents an interactive
+multi-select UI to choose which guidelines to keep, add, or remove.`,
+		Example: `  # Update a source with interactive selection
   dnaspec update my-company-dna
 
-  # Update all sources
-  dnaspec update --all
-
   # Preview changes without writing
-  dnaspec update my-company-dna --dry-run
-
-  # Add all new guidelines automatically
-  dnaspec update my-company-dna --add-new=all
-
-  # Skip new guidelines
-  dnaspec update my-company-dna --add-new=none`,
+  dnaspec update my-company-dna --dry-run`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUpdate(flags, args)
 		},
 	}
 
-	cmd.Flags().BoolVar(&flags.all, "all", false, "Update all sources")
 	cmd.Flags().BoolVar(&flags.dryRun, "dry-run", false, "Preview changes without writing files")
-	cmd.Flags().StringVar(&flags.addNew, "add-new", "", "Policy for new guidelines (all|none)")
 
 	return cmd
 }
 
-const (
-	addNewAll  = "all"
-	addNewNone = "none"
-)
-
 func runUpdate(flags updateFlags, args []string) error {
-	// Validate flags
-	if len(args) == 0 && !flags.all {
-		return fmt.Errorf("must specify either a source name or --all flag")
-	}
-
-	if len(args) > 0 && flags.all {
-		return fmt.Errorf("cannot specify both a source name and --all flag")
-	}
-
-	if flags.addNew != "" && flags.addNew != addNewAll && flags.addNew != addNewNone {
-		return fmt.Errorf("--add-new must be either '%s' or '%s'", addNewAll, addNewNone)
+	// Validate source name is provided
+	if len(args) == 0 {
+		return fmt.Errorf("must specify a source name")
 	}
 
 	// Check project config exists
@@ -89,11 +63,6 @@ func runUpdate(flags updateFlags, args []string) error {
 	cfg, err := config.LoadProjectConfig(projectConfigFileName)
 	if err != nil {
 		return fmt.Errorf("failed to load project config: %w", err)
-	}
-
-	// Update all sources or single source
-	if flags.all {
-		return updateAllSources(cfg, flags)
 	}
 
 	return updateSingleSource(cfg, args[0], flags)
@@ -129,36 +98,63 @@ func updateSingleSource(cfg *config.ProjectConfig, sourceName string, flags upda
 	// Compare current vs latest
 	comparison := config.CompareGuidelines(src.Guidelines, sourceInfo.Manifest.Guidelines)
 
-	// Display updates
-	if len(comparison.Updated) > 0 {
-		fmt.Println("\nUpdated guidelines:")
-		for _, name := range comparison.Updated {
-			fmt.Println(ui.SuccessStyle.Render("  ✓"), name)
-		}
-	}
-
-	// Handle new guidelines
-	addedNew := handleNewGuidelines(sourceInfo.Manifest, comparison.New, flags.addNew)
-
-	// Display removed guidelines
-	if len(comparison.Removed) > 0 {
-		fmt.Println("\nRemoved from source:")
-		for _, name := range comparison.Removed {
-			fmt.Printf(ui.SubtleStyle.Render("  - %s (no longer in manifest)\n"), name)
-		}
-	}
-
-	// Dry run check
+	// Dry run check - show preview without interactive selection
 	if flags.dryRun {
 		fmt.Println(ui.InfoStyle.Render("\n=== Dry Run - Preview ==="))
-		fmt.Println("Would update:", len(comparison.Updated), "guidelines")
-		fmt.Println("Would add:", len(addedNew), "guidelines")
-		fmt.Println("Removed from source:", len(comparison.Removed), "guidelines")
+		fmt.Println("\nAvailable guidelines in source:")
+		for _, g := range sourceInfo.Manifest.Guidelines {
+			fmt.Printf("  - %s: %s\n", g.Name, g.Description)
+		}
+
+		if len(comparison.Unchanged) > 0 || len(comparison.Updated) > 0 {
+			fmt.Println("\nAlready in config:")
+			for _, name := range comparison.Unchanged {
+				fmt.Println(ui.SuccessStyle.Render("  ✓"), name)
+			}
+			for _, name := range comparison.Updated {
+				fmt.Println(ui.SuccessStyle.Render("  ✓"), name, ui.SubtleStyle.Render("(updated)"))
+			}
+		}
+
+		if len(comparison.Removed) > 0 {
+			fmt.Println("\nOrphaned (in config but not in source):")
+			for _, name := range comparison.Removed {
+				fmt.Printf(ui.SubtleStyle.Render("  ⚠️ %s (no longer in manifest)\n"), name)
+			}
+		}
+
 		fmt.Println("\nNo changes made (dry run)")
 		return nil
 	}
 
-	return applyUpdate(cfg, src, sourceInfo, addedNew)
+	// Interactive guideline selection
+	// Build lists for selection
+	var existingNames []string
+	existingNames = append(existingNames, comparison.Unchanged...)
+	existingNames = append(existingNames, comparison.Updated...)
+
+	var orphanedGuidelines []config.ProjectGuideline
+	for _, g := range src.Guidelines {
+		for _, removedName := range comparison.Removed {
+			if g.Name == removedName {
+				orphanedGuidelines = append(orphanedGuidelines, g)
+				break
+			}
+		}
+	}
+
+	// Call interactive selection
+	selectedNames, err := ui.SelectGuidelinesWithStatus(
+		sourceInfo.Manifest.Guidelines,
+		existingNames,
+		orphanedGuidelines,
+	)
+	if err != nil {
+		return fmt.Errorf("guideline selection canceled or failed: %w", err)
+	}
+
+	// Apply selection
+	return applyUpdate(cfg, src, sourceInfo, selectedNames)
 }
 
 func fetchAndCheckSource(src *config.ProjectSource) (info *source.SourceInfo, cleanup func(), upToDate bool, err error) {
@@ -203,57 +199,13 @@ func fetchAndCheckSource(src *config.ProjectSource) (info *source.SourceInfo, cl
 	return info, nil, false, nil
 }
 
-func handleNewGuidelines(manifest *config.Manifest, newGuidelines []string, policy string) []string {
-	if len(newGuidelines) == 0 {
-		return nil
-	}
-
-	fmt.Println("\nNew guidelines available:")
-	for _, name := range newGuidelines {
-		guideline := findManifestGuideline(manifest, name)
-		if guideline != nil {
-			fmt.Printf("  - %s: %s\n", name, guideline.Description)
-		}
-	}
-
-	if policy == "" {
-		// Interactive mode
-		if promptYesNo("\nAdd new guidelines?") {
-			policy = addNewAll
-		} else {
-			policy = addNewNone
-		}
-	}
-
-	if policy == addNewAll {
-		return newGuidelines
-	}
-	return nil
-}
-
-func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInfo *source.SourceInfo, addedNew []string) error {
-	// Update guidelines in config
+func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInfo *source.SourceInfo, selectedNames []string) error {
+	// Update guidelines in config based on selection
 	updatedSource := *src
 
-	// Update existing and unchanged guidelines with latest metadata
+	// Build updated guidelines list from selected names
 	var updatedGuidelines []config.ProjectGuideline
-	for _, g := range src.Guidelines {
-		// Find in manifest
-		manifestGuideline := findManifestGuideline(sourceInfo.Manifest, g.Name)
-		if manifestGuideline != nil {
-			// Update metadata from manifest
-			updatedGuidelines = append(updatedGuidelines, config.ProjectGuideline{
-				Name:                g.Name,
-				File:                manifestGuideline.File,
-				Description:         manifestGuideline.Description,
-				ApplicableScenarios: manifestGuideline.ApplicableScenarios,
-				Prompts:             manifestGuideline.Prompts,
-			})
-		}
-	}
-
-	// Add new guidelines
-	for _, name := range addedNew {
+	for _, name := range selectedNames {
 		manifestGuideline := findManifestGuideline(sourceInfo.Manifest, name)
 		if manifestGuideline != nil {
 			updatedGuidelines = append(updatedGuidelines, config.ProjectGuideline{
@@ -263,7 +215,6 @@ func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInf
 				ApplicableScenarios: manifestGuideline.ApplicableScenarios,
 				Prompts:             manifestGuideline.Prompts,
 			})
-			fmt.Println(ui.SuccessStyle.Render("\n✓ Added"), name)
 		}
 	}
 
@@ -303,34 +254,6 @@ func applyUpdate(cfg *config.ProjectConfig, src *config.ProjectSource, sourceInf
 		ui.SubtleStyle.Render("to regenerate agent files"),
 	)
 
-	return nil
-}
-
-func updateAllSources(cfg *config.ProjectConfig, flags updateFlags) error {
-	if len(cfg.Sources) == 0 {
-		fmt.Println("No sources configured")
-		return nil
-	}
-
-	fmt.Printf("Updating %d sources...\n\n", len(cfg.Sources))
-
-	var errors []error
-	for i := range cfg.Sources {
-		fmt.Printf("=== Updating %s ===\n", cfg.Sources[i].Name)
-
-		if err := updateSingleSource(cfg, cfg.Sources[i].Name, flags); err != nil {
-			errors = append(errors, fmt.Errorf("%s: %w", cfg.Sources[i].Name, err))
-			fmt.Println(ui.ErrorStyle.Render("✗ Failed:"), err)
-		}
-
-		fmt.Println()
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("failed to update %d sources", len(errors))
-	}
-
-	fmt.Println(ui.SuccessStyle.Render("✓ All sources updated"))
 	return nil
 }
 

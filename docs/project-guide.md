@@ -328,71 +328,65 @@ Run 'dnaspec init' to create a new configuration file.
 
 ### `dnaspec update`
 
-Update DNA sources from their origins (git repositories or local directories) to fetch the latest guidelines and prompts.
+Update a DNA source from its origin (git repository or local directory) with interactive guideline selection.
 
-**Update specific source:**
+**Basic usage:**
 ```bash
-# Update a single source
+# Update a source with interactive guideline selection
 dnaspec update my-company-dna
 
-# Preview changes without writing files
+# Preview changes without interactive selection
 dnaspec update my-company-dna --dry-run
-
-# Add all new guidelines automatically
-dnaspec update my-company-dna --add-new=all
-
-# Skip new guidelines
-dnaspec update my-company-dna --add-new=none
-```
-
-**Update all sources:**
-```bash
-# Update all sources at once
-dnaspec update --all
-
-# Update all with automatic new guideline handling
-dnaspec update --all --add-new=all
 ```
 
 This command:
 - Fetches the latest manifest from the source (git clone or local directory read)
-- Compares current configuration with latest manifest
-- Updates metadata for existing guidelines (description, scenarios, prompts)
-- Copies updated guideline and prompt files to `dnaspec/<source-name>/` directory
-- Optionally adds new guidelines (interactive by default)
-- Reports guidelines removed from source (but keeps local files)
+- Presents an interactive multi-select UI to choose which guidelines to keep, add, or remove
+- Pre-selects existing guidelines (already in your config)
+- Shows orphaned guidelines (in config but missing from source) with ⚠️ warning icon
+- Updates metadata for selected guidelines (description, scenarios, prompts)
+- Copies selected guideline and prompt files to `dnaspec/<source-name>/` directory
 - Updates `dnaspec.yaml` with new commit hashes (git sources) and metadata
 
 **Flags:**
-- `--all`: Update all configured sources
-- `--dry-run`: Preview changes without modifying files
-- `--add-new <policy>`: Policy for new guidelines (`all` or `none`). If not specified, prompts interactively.
+- `--dry-run`: Preview changes without interactive selection or modifying files
 
-**Example output:**
+**Interactive selection example:**
 ```
 ⏳ Fetching latest from https://github.com/company/dna...
 ✓ Current commit: abc123de
 ✓ Latest commit: def456ab (changed)
 
-Updated guidelines:
-  ✓ go-style (description changed)
-  ✓ rest-api (content updated)
+Select guidelines to keep or add:
+Use space to select/deselect, enter to confirm. ⚠️ = missing from source
 
-New guidelines available:
+  [✓] go-style - Go coding conventions
+  [✓] rest-api - REST API design principles  
+  [ ] go-testing - Go testing patterns (new)
+  [✓] old-guideline - Deprecated pattern ⚠️
+```
+
+**Dry-run output:**
+```
+⏳ Fetching latest from https://github.com/company/dna...
+✓ Current commit: abc123de
+✓ Latest commit: def456ab (changed)
+
+=== Dry Run - Preview ===
+
+Available guidelines in source:
+  - go-style: Go coding conventions
+  - rest-api: REST API design principles
   - go-testing: Go testing patterns
-  - go-errors: Error handling conventions
 
-Removed from source:
-  - old-guideline (no longer in manifest)
+Already in config:
+  ✓ go-style
+  ✓ rest-api (updated)
 
-Add new guidelines? [y/N]: y
+Orphaned (in config but not in source):
+  ⚠️ old-guideline (no longer in manifest)
 
-✓ Added go-testing
-✓ Added go-errors
-
-✓ Updated dnaspec.yaml
-
-Run 'dnaspec update-agents' to regenerate agent files
+No changes made (dry run)
 ```
 
 **When sources are up to date:**
@@ -402,6 +396,20 @@ Run 'dnaspec update-agents' to regenerate agent files
 ✓ Already at latest commit
 
 All guidelines up to date.
+```
+
+**Updating multiple sources:**
+
+To update multiple sources, use the `dnaspec sync` command or iterate over sources:
+
+```bash
+# Non-interactive batch update for CI/CD
+dnaspec sync
+
+# Or manually iterate for interactive selection
+for source in $(yq '.sources[].name' dnaspec.yaml); do
+  dnaspec update "$source"
+done
 ```
 
 ### `dnaspec update-agents`
@@ -571,14 +579,14 @@ dnaspec sync --dry-run
 ```
 
 This command is a convenience wrapper that:
-1. Updates all sources from their origins (equivalent to `dnaspec update --all --add-new=none`)
+1. Updates all sources from their origins sequentially (non-interactive)
 2. Regenerates all agent files (equivalent to `dnaspec update-agents --no-ask`)
 3. Displays consolidated summary of all changes
 
 **Non-interactive design:**
 - Safe for CI/CD pipelines - never prompts for user input
 - Uses saved agent configuration from `dnaspec.yaml`
-- Does NOT add new guidelines automatically (uses `--add-new=none` policy)
+- Does NOT add new guidelines automatically (keeps only existing guidelines)
 - Exits early if any source update fails
 
 **Flags:**
@@ -620,9 +628,9 @@ Using saved agents: [claude-code, github-copilot]
 **Comparison with individual commands:**
 
 | Command | Interactive | Adds New Guidelines | Use Case |
-|---------|------------|---------------------|----------|
-| `dnaspec update --all` | Yes (prompts for new guidelines) | Optional | Manual updates with decisions |
-| `dnaspec sync` | No | Never | CI/CD, automated workflows |
+|---------|-------------|---------------------|----------|
+| `dnaspec update <source>` | Yes | User selects | Update specific source with control |
+| `dnaspec sync` | No | No | CI/CD, batch updates |
 
 ## Project Configuration
 
@@ -897,18 +905,14 @@ dnaspec update-agents --no-ask
 ### Updating to latest guidelines
 
 ```bash
-# Option 1: Update specific source
+# Option 1: Update specific source (interactive)
 dnaspec update company
-# (Shows changes, prompts for new guidelines)
-dnaspec update-agents --no-ask
+# (Shows interactive selection UI for guidelines)
 
-# Option 2: Update all sources
-dnaspec update --all
-dnaspec update-agents --no-ask
-
-# Option 3: Sync everything (update all + regenerate agents)
+# Option 2: Update all sources (non-interactive for CI/CD)
 dnaspec sync
-
+# (Updates all sources, regenerates agents)
+```
 # Commit changes
 git add dnaspec.yaml dnaspec/ AGENTS.md CLAUDE.md .claude/ .github/
 git commit -m "Update DNA guidelines to latest"

@@ -235,8 +235,8 @@ dnaspec init
 # 2. Add guidelines from a repository
 dnaspec add --git-repo https://github.com/company/dna-guidelines
 
-# 3. Select guidelines interactively (or use --all flag)
-# Example: select go-style, rest-api guidelines
+# 3. Select guidelines interactively
+# Example: select go-style, rest-api guidelines from the multi-select interface
 
 # 4. Generate AI agent configuration
 dnaspec update-agents

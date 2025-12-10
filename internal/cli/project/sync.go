@@ -61,18 +61,30 @@ func runSync(dryRun bool) error {
 	}
 
 	fmt.Println(ui.InfoStyle.Render("Syncing all DNA sources..."))
-	fmt.Println()
+	fmt.Printf("Updating %d sources...\n\n", len(cfg.Sources))
 
-	// Update all sources using non-interactive mode (--add-new=none)
+	// Update each source individually (non-interactive mode)
 	flags := updateFlags{
-		all:    true,
 		dryRun: dryRun,
-		addNew: "none", // Non-interactive: don't add new guidelines
 	}
 
-	if err := updateAllSources(cfg, flags); err != nil {
-		return fmt.Errorf("failed to update sources: %w", err)
+	var errors []error
+	for i := range cfg.Sources {
+		fmt.Printf("=== Updating %s ===\n", cfg.Sources[i].Name)
+
+		if err := updateSingleSource(cfg, cfg.Sources[i].Name, flags); err != nil {
+			errors = append(errors, fmt.Errorf("%s: %w", cfg.Sources[i].Name, err))
+			fmt.Println(ui.ErrorStyle.Render("✗ Failed:"), err)
+		}
+
+		fmt.Println()
 	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to update %d sources", len(errors))
+	}
+
+	fmt.Println(ui.SuccessStyle.Render("✓ All sources updated"))
 
 	// If dry-run, don't regenerate agents
 	if dryRun {
