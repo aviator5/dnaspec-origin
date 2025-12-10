@@ -130,7 +130,7 @@ func confirmRemoval() (bool, error) {
 
 func performRemoval(cfg *config.ProjectConfig, sourceName string, sourceIndex int) error {
 	// Delete generated agent files
-	deletedCount, err := deleteGeneratedFiles(sourceName)
+	agentDeletedCount, err := deleteAgentGeneratedFiles(sourceName)
 	if err != nil {
 		return fmt.Errorf("failed to delete generated files: %w", err)
 	}
@@ -153,7 +153,7 @@ func performRemoval(cfg *config.ProjectConfig, sourceName string, sourceIndex in
 
 	// Success message
 	fmt.Println(ui.SuccessStyle.Render("✓ Success:"), "Removed source", ui.CodeStyle.Render(sourceName))
-	fmt.Println("  Cleaned up", deletedCount, "file(s)")
+	fmt.Println("  Cleaned up", agentDeletedCount, "agents' file(s)")
 	fmt.Println()
 	fmt.Println(ui.SubtleStyle.Render("Next steps:"))
 	fmt.Println("  Run", ui.CodeStyle.Render("dnaspec update-agents"), "to regenerate AGENTS.md")
@@ -202,7 +202,7 @@ func displayImpact(sourceName string) {
 	}
 }
 
-func deleteGeneratedFiles(sourceName string) (int, error) {
+func deleteAgentGeneratedFiles(sourceName string) (int, error) {
 	deletedCount := 0
 
 	// Delete all agent-generated files
