@@ -674,10 +674,14 @@ flowchart TD
 2. **Display Impact**: Show what will be removed:
    - Source entry in dnaspec.yaml
    - Files in `dnaspec/<source-name>/` directory
-   - Generated prompt files (`.claude/commands/dnaspec/<source-name>-*.md`)
-   - Generated Copilot prompts (`.github/prompts/dnaspec-<source-name>-*.prompt.md`)
+   - Generated agent files for all supported agents:
+     - Antigravity: `.agent/workflows/dnaspec-<source-name>-*.md`
+     - Claude Code: `.claude/commands/dnaspec/<source-name>-*.md`
+     - Cursor: `.cursor/commands/dnaspec-<source-name>-*.md`
+     - GitHub Copilot: `.github/prompts/dnaspec-<source-name>-*.prompt.md`
+     - Windsurf: `.windsurf/workflows/dnaspec-<source-name>-*.md`
 3. **Confirm** (unless `--force`): Prompt user to confirm deletion
-4. **Remove Files**: Delete source directory and generated prompts
+4. **Remove Files**: Delete source directory and generated agent files
 5. **Update Config**: Remove source entry from `dnaspec.yaml`
 6. **Suggest Next Steps**: Recommend running `dnaspec update-agents` to regenerate AGENTS.md
 

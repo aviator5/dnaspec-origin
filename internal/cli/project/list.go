@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/aviator5/dnaspec/internal/core/agents"
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/ui"
 )
@@ -17,7 +18,7 @@ func NewListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "Display configured DNA sources, guidelines, prompts, and agents",
 		Long: `Display all configured DNA sources with their metadata, including:
-- Configured AI agents (Claude Code, GitHub Copilot, etc.)
+- Configured AI agents (Antigravity, Claude Code, Cursor, GitHub Copilot, Windsurf)
 - DNA sources with type-specific metadata (URL/path, ref, commit)
 - Guidelines and prompts for each source
 
@@ -63,16 +64,15 @@ func displayAgents(cfg *config.ProjectConfig) {
 	if len(cfg.Agents) == 0 {
 		fmt.Println("  None configured")
 	} else {
-		for _, agent := range cfg.Agents {
-			// Map agent IDs to display names
-			displayName := agent
-			switch agent {
-			case "claude-code":
-				displayName = "Claude Code"
-			case "github-copilot":
-				displayName = "GitHub Copilot"
+		for _, agentID := range cfg.Agents {
+			// Look up agent in registry to get display name
+			agent := agents.GetAgent(agentID)
+			if agent != nil {
+				fmt.Printf("  - %s\n", agent.DisplayName)
+			} else {
+				// Fallback for unknown agents
+				fmt.Printf("  - %s\n", agentID)
 			}
-			fmt.Printf("  - %s\n", displayName)
 		}
 	}
 }

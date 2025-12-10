@@ -70,6 +70,28 @@ func CreateFileWithManagedBlock(newBlock string) string {
 	return header + formatManagedBlock(newBlock)
 }
 
+// RemoveManagedBlock removes the managed block from content if it exists
+// Returns the cleaned content and a boolean indicating if a block was removed
+func RemoveManagedBlock(content string) (cleanedContent string, removed bool) {
+	hasBlock, startIdx, endIdx := DetectManagedBlock(content)
+	if !hasBlock {
+		return content, false
+	}
+
+	// Remove content between markers including the markers
+	before := content[:startIdx]
+	after := content[endIdx:]
+
+	// Clean up extra newlines at the boundary
+	cleanedContent = strings.TrimRight(before, "\n")
+	if cleanedContent != "" && after != "" {
+		cleanedContent += "\n"
+	}
+	cleanedContent += strings.TrimLeft(after, "\n")
+
+	return cleanedContent, true
+}
+
 // formatManagedBlock wraps content with managed block markers
 func formatManagedBlock(content string) string {
 	var sb strings.Builder

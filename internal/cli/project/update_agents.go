@@ -54,8 +54,31 @@ func runUpdateAgents(cmd *cobra.Command, args []string) error {
 
 	// Check if sources are configured
 	if len(cfg.Sources) == 0 {
-		fmt.Println(ui.InfoStyle.Render("No DNA sources configured yet."))
-		fmt.Println(ui.InfoStyle.Render("Run 'dnaspec add' to add guidelines first."))
+		// No sources configured, cleanup any existing DNASPEC blocks
+		fmt.Println(ui.InfoStyle.Render("No DNA sources configured."))
+		fmt.Println(ui.InfoStyle.Render("Checking for DNASPEC blocks to remove..."))
+
+		summary, err := agents.CleanupAgentFiles()
+		if err != nil {
+			return fmt.Errorf("failed to cleanup agent files: %w", err)
+		}
+
+		// Check if any files were cleaned
+		if !summary.AgentsMDCleaned && !summary.ClaudeMDCleaned {
+			fmt.Println(ui.InfoStyle.Render("No DNASPEC blocks found to remove."))
+			fmt.Println(ui.InfoStyle.Render("Run 'dnaspec add' to add guidelines first."))
+			return nil
+		}
+
+		// Display what was cleaned
+		fmt.Println(ui.SuccessStyle.Render("\nRemoved DNASPEC blocks from:"))
+		if summary.AgentsMDCleaned {
+			fmt.Println(ui.SuccessStyle.Render("  ✓ AGENTS.md"))
+		}
+		if summary.ClaudeMDCleaned {
+			fmt.Println(ui.SuccessStyle.Render("  ✓ CLAUDE.md"))
+		}
+
 		return nil
 	}
 

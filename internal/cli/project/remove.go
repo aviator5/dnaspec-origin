@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aviator5/dnaspec/internal/core/agents"
 	"github.com/aviator5/dnaspec/internal/core/config"
 	"github.com/aviator5/dnaspec/internal/ui"
 	"github.com/spf13/cobra"
@@ -23,7 +24,8 @@ func NewRemoveCmd() *cobra.Command {
 
 This command removes the source from dnaspec.yaml, deletes the source
 directory and all guideline files, and cleans up generated agent files
-(Claude commands and Copilot prompts).
+for all supported agents (Antigravity, Claude Code, Cursor, GitHub Copilot,
+and Windsurf).
 
 By default, this command will show what will be deleted and ask for
 confirmation before proceeding. Use --force to skip the confirmation.`,
@@ -171,8 +173,8 @@ func displayImpact(sourceName string) {
 	promptCount := 0
 
 	if info, err := os.Stat(sourceDir); err == nil && info.IsDir() {
-		// Count guidelines (*.md files in root)
-		guidelineFiles, err := filepath.Glob(filepath.Join(sourceDir, "*.md"))
+		// Count guidelines (files in guidelines/ subdirectory)
+		guidelineFiles, err := filepath.Glob(filepath.Join(sourceDir, "guidelines", "*"))
 		if err == nil {
 			guidelineCount = len(guidelineFiles)
 		}
@@ -189,45 +191,31 @@ func displayImpact(sourceName string) {
 		fmt.Printf("  - %s directory (not found, will skip)\n", ui.CodeStyle.Render(sourceDir))
 	}
 
-	// Claude command files
-	claudePattern := filepath.Join(".claude", "commands", "dnaspec", sourceName+"-*.md")
-	claudeFiles, err := filepath.Glob(claudePattern)
-	if err == nil && len(claudeFiles) > 0 {
-		fmt.Printf("  - .claude/commands/dnaspec/%s-*.md (%d files)\n", sourceName, len(claudeFiles))
-	}
-
-	// Copilot prompt files
-	copilotPattern := filepath.Join(".github", "prompts", "dnaspec-"+sourceName+"-*.prompt.md")
-	copilotFiles, err := filepath.Glob(copilotPattern)
-	if err == nil && len(copilotFiles) > 0 {
-		fmt.Printf("  - .github/prompts/dnaspec-%s-*.prompt.md (%d files)\n", sourceName, len(copilotFiles))
+	// Agent-generated files
+	for _, pattern := range agents.AgentFilePatterns {
+		globPattern := pattern.GetFilePatternForSource(sourceName)
+		files, err := filepath.Glob(globPattern)
+		if err == nil && len(files) > 0 {
+			displayPattern := pattern.GetDisplayPatternForSource(sourceName)
+			fmt.Printf("  - %s (%d files)\n", displayPattern, len(files))
+		}
 	}
 }
 
 func deleteGeneratedFiles(sourceName string) (int, error) {
 	deletedCount := 0
 
-	// Delete Claude command files
-	claudePattern := filepath.Join(".claude", "commands", "dnaspec", sourceName+"-*.md")
-	claudeFiles, err := filepath.Glob(claudePattern)
-	if err == nil {
-		for _, file := range claudeFiles {
-			if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
-				return deletedCount, fmt.Errorf("failed to delete %s: %w", file, err)
+	// Delete all agent-generated files
+	for _, pattern := range agents.AgentFilePatterns {
+		globPattern := pattern.GetFilePatternForSource(sourceName)
+		files, err := filepath.Glob(globPattern)
+		if err == nil {
+			for _, file := range files {
+				if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
+					return deletedCount, fmt.Errorf("failed to delete %s: %w", file, err)
+				}
+				deletedCount++
 			}
-			deletedCount++
-		}
-	}
-
-	// Delete Copilot prompt files
-	copilotPattern := filepath.Join(".github", "prompts", "dnaspec-"+sourceName+"-*.prompt.md")
-	copilotFiles, err := filepath.Glob(copilotPattern)
-	if err == nil {
-		for _, file := range copilotFiles {
-			if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
-				return deletedCount, fmt.Errorf("failed to delete %s: %w", file, err)
-			}
-			deletedCount++
 		}
 	}
 

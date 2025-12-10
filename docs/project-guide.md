@@ -224,7 +224,7 @@ Next steps:
 
 ### `dnaspec remove`
 
-Remove a DNA source from your project configuration. This command safely removes the source from `dnaspec.yaml`, deletes the source directory and all guideline files, and cleans up generated agent files (Claude commands and Copilot prompts).
+Remove a DNA source from your project configuration. This command safely removes the source from `dnaspec.yaml`, deletes the source directory and all guideline files, and cleans up generated agent files for all supported agents (Antigravity, Claude Code, Cursor, GitHub Copilot, and Windsurf).
 
 **Basic usage:**
 ```bash
@@ -240,8 +240,12 @@ This command:
 - Prompts for confirmation before deletion (unless `--force` is used)
 - Removes the source entry from `dnaspec.yaml`
 - Deletes the `dnaspec/<source-name>/` directory
-- Cleans up generated Claude command files (`.claude/commands/dnaspec/<source-name>-*.md`)
-- Cleans up generated Copilot prompt files (`.github/prompts/dnaspec-<source-name>-*.prompt.md`)
+- Cleans up generated agent files for all supported agents:
+  - Antigravity: `.agent/workflows/dnaspec-<source-name>-*.md`
+  - Claude Code: `.claude/commands/dnaspec/<source-name>-*.md`
+  - Cursor: `.cursor/commands/dnaspec-<source-name>-*.md`
+  - GitHub Copilot: `.github/prompts/dnaspec-<source-name>-*.prompt.md`
+  - Windsurf: `.windsurf/workflows/dnaspec-<source-name>-*.md`
 - Handles missing files gracefully (idempotent operation)
 
 **Flags:**
@@ -279,7 +283,7 @@ dnaspec list
 
 This command:
 - Loads and displays the `dnaspec.yaml` configuration file
-- Shows configured AI agents (Phase 1: Claude Code, GitHub Copilot)
+- Shows configured AI agents (Antigravity, Claude Code, Cursor, GitHub Copilot, Windsurf)
 - Lists all DNA sources with their type-specific metadata
 - Displays guidelines and prompts for each source
 - Provides a quick overview of your project's DNA setup
@@ -287,8 +291,8 @@ This command:
 **Example output:**
 ```
 Configured Agents (Phase 1):
-  - claude-code
-  - github-copilot
+  - Claude Code
+  - GitHub Copilot
 
 Sources:
 
@@ -417,6 +421,7 @@ This command:
 - Saves your agent selection to `dnaspec.yaml`
 - Generates agent-specific integration files based on your DNA guidelines
 - Updates managed blocks while preserving custom content outside those blocks
+- **When no sources are configured**: Removes existing DNASPEC blocks from AGENTS.md and CLAUDE.md (if present)
 
 **Generated Files:**
 
@@ -463,10 +468,33 @@ Your AI assistants can now access your DNA guidelines:
   • GitHub Copilot: Use GitHub Copilot Chat with dnaspec prompts
 ```
 
+**When no sources are configured:**
+
+If you've removed all DNA sources, the command will clean up any existing DNASPEC blocks:
+
+```
+No DNA sources configured.
+Checking for DNASPEC blocks to remove...
+
+Removed DNASPEC blocks from:
+  ✓ AGENTS.md
+  ✓ CLAUDE.md
+```
+
+Or if no blocks exist:
+
+```
+No DNA sources configured.
+Checking for DNASPEC blocks to remove...
+No DNASPEC blocks found to remove.
+Run 'dnaspec add' to add guidelines first.
+```
+
 **When to run:**
 - After adding new DNA sources with `dnaspec add`
 - After changing which agents you want to use
 - After updating guidelines in your DNA sources (with `--no-ask` flag)
+- After removing all DNA sources to clean up agent files
 
 **Managed Blocks:**
 
@@ -798,10 +826,12 @@ dnaspec add --git-repo https://github.com/company/dna --name company-dna-v2
 
 **Problem:** You ran `dnaspec update-agents` but haven't added any DNA sources yet.
 
-**Solution:** Add at least one DNA source first:
-```bash
-dnaspec add --git-repo https://github.com/company/dna-guidelines
-```
+**Solution:**
+- If you want to use DNA guidelines, add at least one DNA source first:
+  ```bash
+  dnaspec add --git-repo https://github.com/company/dna-guidelines
+  ```
+- If you've intentionally removed all sources, `update-agents` will automatically clean up any existing DNASPEC blocks from AGENTS.md and CLAUDE.md
 
 ### "failed to create directory"
 
